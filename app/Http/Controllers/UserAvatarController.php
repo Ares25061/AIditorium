@@ -18,36 +18,29 @@ class UserAvatarController extends Controller
     {
         $user = Auth::user();
         $validated = $request->validated();
-
         if(isset($validated['user_id'])) {
             $model = User::find($validated['user_id']);
             if ($model?->id !== $user->id) {
                 $user = $model;
             }
         }
-
         $this->authorize('update', $user);
-
         // Удаляем старый аватар из File если есть
-        if ($user->avatar) {
+        if (!is_null($user->avatar)) {
             $oldFile = File::find($user->avatar);  // avatar хранит ID
-            if ($oldFile && Storage::exists($oldFile->path)) {
+            if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
                 Storage::delete($oldFile->path);
                 $oldFile->delete();
             }
         }
-
         // Сохраняем файл в storage
         $path = $request->file('avatar')->store('avatars', 'public');
-
         $file = File::create([
             'path' => $path,
             'user_id' => $user->id,
             'type' => 'avatar'
         ]);
-
         $user->update(['avatar' => $file->id]);
-
         return response()->json([
             'status' => 'success',
             'message' => 'Avatar uploaded successfully!',
@@ -61,27 +54,22 @@ class UserAvatarController extends Controller
     {
         $user = Auth::user();
         $validated = $request->validated();
-
         if(isset($validated['user_id'])) {
             $model = User::find($validated['user_id']);
             if ($model?->id !== $user->id) {
                 $user = $model;
             }
         }
-
         $this->authorize('update', $user);
-
         // Удаляем из File и storage
-        if ($user->avatar) {
+        if (!is_null($user->avatar)) {
             $file = File::find($user->avatar);
-            if ($file && Storage::exists($file->path)) {
+            if (!is_null($file) && Storage::exists($file->path)) {
                 Storage::delete($file->path);
                 $file->delete();
             }
         }
-
         $user->update(['avatar' => null]);
-
         return response()->json([
             'status' => 'success',
             'message' => 'Avatar destroyed successfully!',

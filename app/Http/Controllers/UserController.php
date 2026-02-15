@@ -7,6 +7,7 @@ use App\Http\Requests\EditUserRequest;
 use App\Http\Requests\LoginUserRequest;
 use App\Http\Requests\SetRoleRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\File;
 use App\Models\Role;
 use App\Models\User;
 use App\Roles;
@@ -27,7 +28,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view-list',User::class);
-        $users = User::with(['role','courses'])->paginate($request->per_page ?? 10, ['*'], 'page', $request->page ?? 1);
+        $users = User::with(['role'])->paginate($request->per_page ?? 10, ['*'], 'page', $request->page ?? 1);
         if ($users->isEmpty()) {
             return response()->json(['error' => 'Users not found'], 404);
         }
@@ -57,7 +58,7 @@ class UserController extends Controller
      */
     public function show(int $id)
     {
-        $user = User::with('courses')->find($id);
+        $user = User::find($id);
         if (is_null($user)) {
             return response()->json(['error' => 'User not found'], 404);
         }
@@ -125,8 +126,12 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
         $this->authorize('delete',$user);
-        if(!is_null($user->avatar) && Storage::exists($user->avatar) ) {
-            Storage::delete($user->avatar);
+        if (!is_null($user->avatar)) {
+            $oldFile = File::find($user->avatar);
+            if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
+                Storage::delete($oldFile->path);
+                $oldFile->delete();
+            }
         }
         $user->delete();
         return response()->json([

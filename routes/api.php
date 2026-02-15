@@ -10,11 +10,6 @@ Route::apiResource('/user', UserController::class);
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 
-Route::get('/login', function() {
-    return response()->json(['error' => 'Unauthenticated'], 401);
-})->name('login');
-
-
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/logout', [UserController::class, 'logout']);
     Route::post('/user/avatar/upload', [UserAvatarController::class, 'upload']);
