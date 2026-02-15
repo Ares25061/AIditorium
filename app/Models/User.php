@@ -10,6 +10,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Roles;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -29,7 +34,8 @@ class User extends Authenticatable implements JWTSubject
         'avatar',
     ];
     protected $appends = [
-        'roleName'
+        'roleName',
+        'avatar_url',
     ];
 
     /**
@@ -51,7 +57,8 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed'
+            'password' => 'hashed',
+            'avatar' => 'integer',
         ];
     }
 
@@ -82,6 +89,20 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(Role::class);
     }
+
+    public function avatarFile(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'avatar');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if ($this->avatar && $this->avatarFile) {
+            return asset('storage/' . $this->avatarFile->path);
+        }
+        return null;
+    }
+
     public function hasPermission(UserPermissions|RolePermissions $permission): bool
     {
         return $this->role->permissions->contains('name', $permission->value);
