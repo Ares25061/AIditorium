@@ -14,7 +14,8 @@ class File extends Model
        'user_id',
        'course_id',
        'task_id',
-       'type'
+       'type',
+       'name',
    ];
 
    protected $casts = [

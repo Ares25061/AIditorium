@@ -2,10 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\Role;
 use App\Models\User;
 use App\RolePermissions;
-use App\Roles;
 use App\UserPermissions;
 use Illuminate\Auth\Access\Response;
 

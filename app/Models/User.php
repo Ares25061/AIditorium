@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\FilePermissions;
 use App\RolePermissions;
 use App\UserPermissions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -103,7 +104,7 @@ class User extends Authenticatable implements JWTSubject
         return null;
     }
 
-    public function hasPermission(UserPermissions|RolePermissions $permission): bool
+    public function hasPermission(UserPermissions|RolePermissions|FilePermissions $permission): bool
     {
         return $this->role->permissions->contains('name', $permission->value);
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\UserAvatarController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -16,5 +17,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/user/avatar/destroy', [UserAvatarController::class, 'destroy']);
     Route::post('/refresh', [UserController::class, 'refresh']);
     Route::post('/user/edit', [UserController::class, 'edit']);
+    Route::apiResource('/file', FileController::class);
+    Route::get('/file/download/{file}', [FileController::class, 'download']);
     Route::patch('/user/setRole/{id}', [UserController::class, 'setRole']);
 });

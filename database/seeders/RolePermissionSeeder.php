@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\FilePermissions;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -20,12 +21,16 @@ class RolePermissionSeeder extends Seeder
     {
         $userPermissions = UserPermissions::values();
         $rolePermissions = RolePermissions::values();
+        $filePermissions = FilePermissions::values();
         $permissions = [];
         foreach ($userPermissions as $userPermission) {
             $permissions[] = Permission::create(['name' => $userPermission]);
         }
         foreach ($rolePermissions as $rolePermission) {
             $permissions[] = Permission::create(['name' => $rolePermission]);
+        }
+        foreach ($filePermissions as $filePermission) {
+            $permissions[] = Permission::create(['name' => $filePermission]);
         }
         $adminRole = Role::create(['name' => Roles::ADMIN->value]);
         $adminRole->permissions()->sync($permissions);

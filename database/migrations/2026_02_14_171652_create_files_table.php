@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\TypesEnum;
 
 return new class extends Migration
 {
@@ -28,7 +29,7 @@ return new class extends Migration
                 ->constrained(table: 'tasks')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
-            $table->enum('type', ['back', 'task', 'avatar']);
+            $table->string('type')->default(TypesEnum::ANOTHER->value);
             $table->timestamps();
         });
     }
