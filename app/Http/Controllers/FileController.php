@@ -77,7 +77,9 @@ class FileController extends Controller
             $file->path = $validated['type'] . '/' . basename($file->path);
 
         }
-        $file->update([...$validated]);
+        $file->update([
+            ...$validated,
+        ]);
         return response()->json(['message' => 'File updated!', 'file' => $file], 200);
     }
 

@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->foreignID('attachment_id')
+        Schema::table('courses', function (Blueprint $table) {
+            $table->foreignID('background_logo_id')
                 ->nullable()
                 ->constrained(table: 'files')
                 ->onDelete('set null');
@@ -24,8 +24,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('attachment_id');
+        Schema::table('courses', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('background_logo_id');
         });
     }
 };
