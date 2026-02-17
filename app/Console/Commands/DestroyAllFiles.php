@@ -13,7 +13,7 @@ class DestroyAllFiles extends Command
 {
     protected $signature = 'app:destroy-all-files';
 
-    protected $description = 'Command description';
+    protected $description = 'Снести все локальные файлы и из БД.';
 
     public function handle()
     {

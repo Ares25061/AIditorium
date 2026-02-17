@@ -16,6 +16,7 @@ class File extends Model
        'task_id',
        'type',
        'name',
+       'is_public',
    ];
 
    protected $casts = [

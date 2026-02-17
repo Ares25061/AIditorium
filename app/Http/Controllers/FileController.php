@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateFileRequest;
 use App\Http\Requests\UpdateFileRequest;
+use App\Models\Course;
 use App\Models\File;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -22,13 +23,12 @@ class FileController extends Controller
      */
     public function index(Request $request)
     {
-        $files = File::paginate($request->per_page, page:$request->page);
-        if ($files->count() === 0) {
-            return response()->json(['error' => 'Files not found'], 404);
-        }
-        return response()->json(['files' => $files], 200);
+        $this->authorize('viewAny', File::class);
+        $files = File::paginate($request->per_page ?? 15);
+        return response()->json([
+            'files' => $files
+        ]);
     }
-
     /**
      * Store a newly created resource in storage.
      */
@@ -43,6 +43,7 @@ class FileController extends Controller
             'type' => $validated['type'] ?? 'another',
             'course_id' => $validated['course_id'] ?? null,
             'task_id' => $validated['task_id'] ?? null,
+            'is_public' => $validated['is_public'] ?? false,
         ]);
         return response()->json(['message' => 'File created!', 'file' => $file], 200);
     }
@@ -53,6 +54,7 @@ class FileController extends Controller
     public function show(int $id)
     {
         $file = File::find($id);
+        $this->authorize('view',$file);
         if (is_null($file)) {
             return response()->json(['error' => 'File not found'], 404);
         }
@@ -64,6 +66,7 @@ class FileController extends Controller
      */
     public function update(UpdateFileRequest $request, int $id)
     {
+        $this->authorize('update', File::class);
         $file = File::find($id);
         if (is_null($file)) {
             return response()->json(['error' => 'File not found'], 404);
@@ -84,6 +87,7 @@ class FileController extends Controller
     public function destroy(int $id)
     {
         $file = File::find($id);
+        $this->authorize('delete',$file);
         if (is_null($file)) {
             return response()->json(['error' => 'File not found'], 404);
         }
@@ -96,6 +100,15 @@ class FileController extends Controller
 
     public function download(int $id)
     {
-        // В будущем сделаю
+        $file = File::find($id);
+        if (is_null($file)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+        $this->authorize('view', $file);
+        $path = storage_path('app/public/files/' . $file->path);
+        if (!file_exists($path)) {
+            return response()->json(['error' => 'File does not exist on server'], 404);
+        }
+        return response()->download($path);
     }
 }

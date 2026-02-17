@@ -19,6 +19,7 @@ class UpdateFileRequest extends FormRequest
             'type' => ['sometimes', 'string',Rule::enum(TypesEnum::class)],
             'course_id' => 'sometimes|int',
             'task_id' => 'sometimes|int',
+            'is_public' => 'sometimes|bool',
         ];
     }
 }

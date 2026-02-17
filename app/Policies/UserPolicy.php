@@ -14,7 +14,7 @@ class UserPolicy
         if ($user->hasPermission(UserPermissions::VIEW) || $user->id === $model->id) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to view users");
+        return Response::deny("You don't have permission to view this user");
 
     }
     public function viewList(User $user)

@@ -30,6 +30,7 @@ return new class extends Migration
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
             $table->string('type')->default(TypesEnum::ANOTHER->value);
+            $table->boolean('is_public')->default(false);
             $table->timestamps();
         });
     }

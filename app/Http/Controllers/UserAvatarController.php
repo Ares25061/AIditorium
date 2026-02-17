@@ -38,7 +38,8 @@ class UserAvatarController extends Controller
         $file = File::create([
             'path' => $path,
             'user_id' => $user->id,
-            'type' => 'avatar'
+            'type' => 'avatar',
+            'is_public' => true,
         ]);
         $user->update(['avatar' => $file->id]);
         return response()->json([

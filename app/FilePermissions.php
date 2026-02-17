@@ -8,7 +8,6 @@ enum FilePermissions : string
     case VIEW_LIST = 'files.view-list';
     case UPDATE = 'files.update';
     case DELETE = 'files.delete';
-    case DELETE_ALL = 'files.delete-all';
 
     public static function values(): array
     {
