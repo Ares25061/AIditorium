@@ -6,6 +6,7 @@ use App\Http\Requests\AddUserToCourseRequest;
 use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class CourseController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Course::class);
+        $this->authorize('view-any', Course::class);
         $courses = Course::paginate($request->per_page ?? 15);
         if ($courses->isEmpty()) {
             return response()->json(['error' => 'Courses not found'], 404);
@@ -79,7 +80,7 @@ class CourseController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(int $id)
+    public function archive(int $id)
     {
         $course = Course::find($id);
         $this->authorize('delete',$course);
@@ -91,7 +92,7 @@ class CourseController extends Controller
         ]);
         return response()->json(['message' => 'Course archived!', 'course' => $course], 200);
     }
-    public function hardDestroy(int $id)
+    public function destroy(int $id)
     {
         $course = Course::find($id);
         $this->authorize('hard-delete',$course);
@@ -121,18 +122,16 @@ class CourseController extends Controller
         if (is_null($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
-        $inviteCodeTeacher = Str::random(9);
-        $course->invite_code_teacher = $inviteCodeTeacher;
-        $course->save();
+        $course->update(['invite_code_teacher' => Str::random(9)]);
         return response()->json(['message' => 'Course invite code for teacher generated!', 'course' => $course], 200);
     }
     public function addUserToCourse(AddUserToCourseRequest $request)
     {
         $user = Auth::user();
         $validated = $request->validated();
-        $course = Course::where('invite_code',$validated['code'])->first()
-            ?? Course::where('invite_code_teacher',$validated['code'])->first()
-            ?? null;
+        $course = Course::where('invite_code',$validated['code'])
+            ->orWhere('invite_code_teacher',$validated['code'])
+            ->first();
         if (is_null($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
@@ -144,11 +143,13 @@ class CourseController extends Controller
             ], 409);
         }
         if ($validated['code'] == $course->invite_code) {
-            $user->courses()->attach($course->id);
+            $user->courses()->syncWithoutDetaching($course->id);
         }
         else if ($validated['code'] == $course->invite_code_teacher) {
-            $user->courses()->attach($course->id, ['role' => 'teacher']);
+            $user->courses()->syncWithoutDetaching([
+                $course->id => ['role' => 'teacher']
+            ]);
         }
-        return response()->json(['message' => 'User added to course!', 'user_courses' => $user->load('courses')], 200);
+        return response()->json(['message' => 'User added to course!', 'user_courses' => $user->courses()->where('course_id', $course->id)->first()], 200);
     }
 }

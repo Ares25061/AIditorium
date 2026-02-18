@@ -24,7 +24,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/file/download/{file}', [FileController::class, 'download']);
 
     Route::apiResource('/course', CourseController::class);
-    Route::delete('/course/hardDestroy/{course}', [CourseController::class, 'hardDestroy']);
+    Route::delete('/course/archive/{course}', [CourseController::class, 'archive']);
     Route::post('/course/generateCode/{course}', [CourseController::class, 'generateTeacherCodeInvite']);
     Route::post('/course/addUser', [CourseController::class, 'addUserToCourse']);
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
