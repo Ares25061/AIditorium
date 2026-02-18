@@ -1,5 +1,6 @@
 <?php
 
+use App\CourseUsersRoleEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('courses_users', function (Blueprint $table) {
+        Schema::create('course_user', function (Blueprint $table) {
             $table->foreignID('user_id')
                 ->constrained(table: 'users')
                 ->onUpdate('cascade')
@@ -20,7 +21,7 @@ return new class extends Migration
                 ->constrained(table: 'courses')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
-            $table->enum('role', ['teacher', 'student'])->default('student'); // У нас будет система, в которой будет глобальная роль, а также роль в конкретном курсе
+            $table->string('role')->default(CourseUsersRoleEnum::STUDENT->value);
             $table->timestamps();
         });
     }
