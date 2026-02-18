@@ -25,6 +25,9 @@ class FileController extends Controller
     {
         $this->authorize('viewAny', File::class);
         $files = File::paginate($request->per_page ?? 15);
+        if ($files->isEmpty()) {
+            return response()->json(['error' => 'Files not found'], 404);
+        }
         return response()->json([
             'files' => $files
         ]);
@@ -107,10 +110,9 @@ class FileController extends Controller
             return response()->json(['error' => 'File not found'], 404);
         }
         $this->authorize('view', $file);
-        $path = storage_path('app/public/files/' . $file->path);
-        if (!file_exists($path)) {
+        if (Storage::missing($file->path)) {
             return response()->json(['error' => 'File does not exist on server'], 404);
         }
-        return response()->download($path);
+        return Storage::download($file->path);
     }
 }

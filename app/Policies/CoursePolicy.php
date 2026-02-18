@@ -19,12 +19,12 @@ class CoursePolicy
         }
         return Response::deny('You do not have permission to view any files.');
     }
-    public function view(User $user,File $file)
+    public function view(User $user,Course $course)
     {
-        if ($user->hasPermission(CoursePermissions::VIEW) || $user->id === $file->user_id) {
+        if ($user->hasPermission(CoursePermissions::VIEW)) {
             return Response::allow();
         }
-        if ($file->is_public){
+        if (!empty($user->courses()->where('course_id', $course->id)->first())){
             return Response::allow();
         }
         return Response::deny("You don't have permission to view this file");
@@ -35,7 +35,7 @@ class CoursePolicy
         if ($user->hasPermission(CoursePermissions::UPDATE)) {
             return Response::allow();
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->role === CourseUsersRoleEnum::STUDENT->value)
+        if ($user->courses()->where('course_id', $course->id)->first()->role === CourseUsersRoleEnum::TEACHER->value)
         {
             return Response::allow();
         }
@@ -57,5 +57,25 @@ class CoursePolicy
             return Response::allow();
         }
         return Response::deny("You don't have permission to delete courses");
+    }
+    public function restore(User $user, Course $course)
+    {
+        if ($user->hasPermission(CoursePermissions::RESTORE)) {
+            return Response::allow();
+        }
+        if ($user->id === $course->creator_id) {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to restore this course");
+    }
+    public function generateTeacherCodeInvite(User $user, Course $course)
+    {
+        if ($user->hasPermission(CoursePermissions::GENERATE_TEACHER_CODE_INVITE)) {
+            return Response::allow();
+        }
+        if ($user->id === $course->creator_id) {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to generate teacher code invite");
     }
 }

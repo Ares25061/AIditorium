@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AddUserToCourseRequest;
 use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
@@ -20,6 +21,9 @@ class CourseController extends Controller
     {
         $this->authorize('viewAny', Course::class);
         $courses = Course::paginate($request->per_page ?? 15);
+        if ($courses->isEmpty()) {
+            return response()->json(['error' => 'Courses not found'], 404);
+        }
         return response()->json([
             'files' => $courses
         ]);
@@ -34,12 +38,12 @@ class CourseController extends Controller
         $validated = $request->validated();
         $validated['creator_id'] = $user->id;
         $validated['invite_code'] = Str::random(6);
-
         $course = Course::create([
             ...$validated,
             'status' => $validated['status'] ?? 'active',
         ]);
-        return response()->json(['message' => 'Course created!', 'course' => $course], 200);
+        $user->courses()->attach($course->id, ['role' => 'teacher']);
+        return response()->json(['message' => 'Course created!', 'course' => $user->courses()->where('course_id', $course->id)->first()], 200);
     }
 
     /**
@@ -60,8 +64,8 @@ class CourseController extends Controller
      */
     public function update(UpdateCourseRequest $request, int $id)
     {
-        $this->authorize('update', Course::class);
         $course = Course::find($id);
+        $this->authorize('update', $course);
         if (is_null($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
@@ -96,5 +100,55 @@ class CourseController extends Controller
         }
         $course->delete();
         return response()->json(['message' => 'Course deleted!'], 200);
+    }
+
+    public function restore(int $id)
+    {
+        $course = Course::find($id);
+        $this->authorize('restore',$course);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $course->update([
+            'status' => 'active',
+        ]);
+        return response()->json(['message' => 'Course is active!', 'course' => $course], 200);
+    }
+    public function generateTeacherCodeInvite(int $id)
+    {
+        $course = Course::find($id);
+        $this->authorize('generate-teacher-code-invite',$course);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $inviteCodeTeacher = Str::random(9);
+        $course->invite_code_teacher = $inviteCodeTeacher;
+        $course->save();
+        return response()->json(['message' => 'Course invite code for teacher generated!', 'course' => $course], 200);
+    }
+    public function addUserToCourse(AddUserToCourseRequest $request)
+    {
+        $user = Auth::user();
+        $validated = $request->validated();
+        $course = Course::where('invite_code',$validated['code'])->first()
+            ?? Course::where('invite_code_teacher',$validated['code'])->first()
+            ?? null;
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        if ($user->courses()->where('course_id', $course->id)->exists()) {
+            return response()->json([
+                'error' => 'User is already enrolled in this course',
+                'user_id' => $user->id,
+                'course_id' => $course->id
+            ], 409);
+        }
+        if ($validated['code'] == $course->invite_code) {
+            $user->courses()->attach($course->id);
+        }
+        else if ($validated['code'] == $course->invite_code_teacher) {
+            $user->courses()->attach($course->id, ['role' => 'teacher']);
+        }
+        return response()->json(['message' => 'User added to course!', 'user_courses' => $user->load('courses')], 200);
     }
 }
