@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AddUserToCourseRequest;
 use App\Http\Requests\CreateCourseRequest;
+use App\Http\Requests\RemoveUserFromCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
@@ -26,7 +27,7 @@ class CourseController extends Controller
             return response()->json(['error' => 'Courses not found'], 404);
         }
         return response()->json([
-            'files' => $courses
+            'courses' => $courses
         ]);
     }
 
@@ -151,5 +152,37 @@ class CourseController extends Controller
             ]);
         }
         return response()->json(['message' => 'User added to course!', 'user_courses' => $user->courses()->where('course_id', $course->id)->first()], 200);
+    }
+
+    public function removeUser(int $id, RemoveUserFromCourseRequest $request)
+    {
+        $course = Course::find($id);
+        $validated = $request->validated();
+        $model = User::find($validated['user_id']);
+        $this->authorize('remove-user',[$course, $model]);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        if ($model->courses()->where('course_id', $course->id)->doesntExist()) {
+            return response()->json([
+                'error' => 'User is not enrolled in this course',
+                'user_id' => $model->id,
+                'course_id' => $course->id
+            ], 409);
+        }
+        $model->courses()->detach($course->id);
+        return response()->json(['message' => 'User removed from course!'], 200);
+    }
+
+    public function viewList(Request $request)
+    {
+        $user = Auth::user();
+        $courses = $user
+            ->courses()
+            ->paginate($request->per_page ?? 15);
+        if ($courses->isEmpty()) {
+            return response()->json(['error' => 'Courses not found'], 404);
+        }
+        return response()->json(['courses' => $courses]);
     }
 }

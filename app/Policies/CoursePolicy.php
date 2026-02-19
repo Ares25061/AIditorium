@@ -17,7 +17,7 @@ class CoursePolicy
         if ($user->hasPermission(CoursePermissions::VIEW_LIST)) {
             return Response::allow();
         }
-        return Response::deny('You do not have permission to view any files.');
+        return Response::deny('You do not have permission to view any courses.');
     }
     public function view(User $user,Course $course)
     {
@@ -27,7 +27,7 @@ class CoursePolicy
         if (!empty($user->courses()->where('course_id', $course->id)->first())){
             return Response::allow();
         }
-        return Response::deny("You don't have permission to view this file");
+        return Response::deny("You don't have permission to view this course");
 
     }
     public function update(User $user, Course $course)
@@ -77,5 +77,20 @@ class CoursePolicy
             return Response::allow();
         }
         return Response::deny("You don't have permission to generate teacher code invite");
+    }
+    public function removeUser(User $user, Course $course, User $model)
+    {
+        if ($user->hasPermission(CoursePermissions::REMOVE_USER)) {
+            return Response::allow();
+        }
+        if ($user->id === $model->id)
+        {
+            return Response::deny("You can't remove yourself");
+        }
+        if ($user->id === $course->creator_id)
+        {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to remove user from this course");
     }
 }
