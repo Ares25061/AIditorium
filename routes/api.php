@@ -22,6 +22,9 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::apiResource('/file', FileController::class);
     Route::get('/file/download/{file}', [FileController::class, 'download']);
+    Route::get('/course/{courseId}/files', [FileController::class, 'courseFiles']);
+    Route::get('/course/{courseId}/student/{studentId}/files', [FileController::class, 'studentFiles']);
+    Route::get('/course/{courseId}/student/{studentId}/file/{fileId}/download', [FileController::class, 'downloadStudentFile']);
 
     Route::apiResource('/course', CourseController::class);
     Route::delete('/course/hardDestroy/{course}', [CourseController::class, 'hardDestroy']);
