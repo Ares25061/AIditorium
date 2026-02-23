@@ -5,6 +5,7 @@ namespace App\Models;
 use App\CoursePermissions;
 use App\FilePermissions;
 use App\RolePermissions;
+use App\TaskPermissions;
 use App\UserPermissions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -85,7 +86,9 @@ class User extends Authenticatable implements JWTSubject
     }
     public function courses()
     {
-        return $this->BelongsToMany(Course::class)->withPivot('role');
+        return $this->BelongsToMany(Course::class)
+            ->withPivot('role')
+            ->withTimestamps();
     }
     public function role()
     {
@@ -105,7 +108,7 @@ class User extends Authenticatable implements JWTSubject
         return null;
     }
 
-    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions $permission): bool
+    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions|TaskPermissions $permission): bool
     {
         return $this->role->permissions->contains('name', $permission->value);
     }

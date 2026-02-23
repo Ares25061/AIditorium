@@ -17,6 +17,10 @@ return new class extends Migration
                 ->constrained(table: 'courses')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
+            $table->foreignID('user_id')
+                ->constrained('users')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
             $table->string('name');
             $table->string('description')
                 ->nullable();
@@ -24,9 +28,6 @@ return new class extends Migration
             $table->integer('scores');
             $table->dateTime('deadline')
                 ->nullable();
-            $table->enum('status', ['active', 'closed'])
-                ->default('active');
-
         });
     }
 

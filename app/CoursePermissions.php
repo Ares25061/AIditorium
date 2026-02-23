@@ -11,6 +11,7 @@ enum CoursePermissions : string
     case HARD_DELETE = 'courses.hard-delete';
     case RESTORE = 'courses.restore';
     case GENERATE_TEACHER_CODE_INVITE = 'courses.generate-teacher-code-invite';
+    case REMOVE_USER = 'courses.remove-user';
 
     public static function values(): array
     {

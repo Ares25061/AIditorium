@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\UserAvatarController;
@@ -26,9 +27,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/course/{courseId}/student/{studentId}/files', [FileController::class, 'studentFiles']);
     Route::get('/course/{courseId}/student/{studentId}/file/{fileId}/download', [FileController::class, 'downloadStudentFile']);
 
+
+    Route::get('/course/viewMine', [CourseController::class, 'viewMine']);
     Route::apiResource('/course', CourseController::class);
-    Route::delete('/course/hardDestroy/{course}', [CourseController::class, 'hardDestroy']);
+    Route::delete('/course/archive/{course}', [CourseController::class, 'archive']);
     Route::post('/course/generateCode/{course}', [CourseController::class, 'generateTeacherCodeInvite']);
     Route::post('/course/addUser', [CourseController::class, 'addUserToCourse']);
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
+    Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
+
+    Route::get('/task/viewList', [TaskController::class, 'viewList']);
+    Route::apiResource('/task', TaskController::class);
 });
