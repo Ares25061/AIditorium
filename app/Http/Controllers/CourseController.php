@@ -174,7 +174,7 @@ class CourseController extends Controller
         return response()->json(['message' => 'User removed from course!'], 200);
     }
 
-    public function viewList(Request $request)
+    public function viewMine(Request $request)
     {
         $user = Auth::user();
         $courses = $user

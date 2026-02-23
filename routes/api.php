@@ -24,14 +24,15 @@ Route::middleware(['auth:api'])->group(function () {
     Route::apiResource('/file', FileController::class);
     Route::get('/file/download/{file}', [FileController::class, 'download']);
 
+
+    Route::get('/course/viewMine', [CourseController::class, 'viewMine']);
     Route::apiResource('/course', CourseController::class);
     Route::delete('/course/archive/{course}', [CourseController::class, 'archive']);
     Route::post('/course/generateCode/{course}', [CourseController::class, 'generateTeacherCodeInvite']);
     Route::post('/course/addUser', [CourseController::class, 'addUserToCourse']);
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
-    Route::post('/course/viewList', [CourseController::class, 'viewList']);
 
+    Route::get('/task/viewList', [TaskController::class, 'viewList']);
     Route::apiResource('/task', TaskController::class);
-    Route::post('/task/viewList', [TaskController::class, 'viewList']);
 });
