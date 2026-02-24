@@ -29,13 +29,17 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::get('/course/viewMine', [CourseController::class, 'viewMine']);
+    Route::get('/course/{course}/leave', [CourseController::class, 'leave']);
+    Route::patch('/course/{course}/close', [CourseController::class, 'close']);
+    Route::patch('/course/{course}/reopen', [CourseController::class, 'reopen']);
+    Route::patch('/course/{course}/regenerateInviteCode', [CourseController::class, 'regenerateInviteCode']);
     Route::apiResource('/course', CourseController::class);
     Route::delete('/course/archive/{course}', [CourseController::class, 'archive']);
     Route::post('/course/generateCode/{course}', [CourseController::class, 'generateTeacherCodeInvite']);
-    Route::post('/course/addUser', [CourseController::class, 'addUserToCourse']);
+    Route::post('/course/addUser', [CourseController::class, 'addUser']);
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
 
-    Route::get('/task/viewList', [TaskController::class, 'viewList']);
+    Route::get('/course/{course}/task/viewMine', [TaskController::class, 'viewMine']);
     Route::apiResource('/task', TaskController::class);
 });

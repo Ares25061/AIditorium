@@ -14,7 +14,7 @@ class Course extends Model
         'background_logo',
         'description',
         'status',
-
+        'is_closed',
     ];
 
     protected $casts = [

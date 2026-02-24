@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateTaskRequest extends FormRequest
+class ViewMineTasksRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,12 +14,8 @@ class CreateTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id' => 'required|exists:courses,id',
-            'name' => 'required|string',
-            'description' => 'sometimes|string',
-            'scores' => 'sometimes|integer',
-            'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|int exists:files,id',
+            'course_id' => 'required|integer|exists:courses,id',
+            'per_page' => 'sometimes|integer|min:1|max:100',
         ];
     }
 }

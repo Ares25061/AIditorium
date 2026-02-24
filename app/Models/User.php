@@ -90,6 +90,10 @@ class User extends Authenticatable implements JWTSubject
             ->withPivot('role')
             ->withTimestamps();
     }
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
     public function role()
     {
         return $this->belongsTo(Role::class);

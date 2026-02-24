@@ -68,14 +68,14 @@ class FilePolicy
             ->where('course_id', $course->id)
             ->first();
 
-        if ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
+        if (!empty($userCourse) && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
             return Response::allow();
         }
 
         return Response::deny('Only teachers can view all files in course');
     }
 
-    public function viewStudentFiles(User $user, Course $course, User $student): Response
+    public function viewStudentFiles(User $user, Course $course): Response
     {
         // учитель может смотреть файлы конкретного ученика
         $userCourse = $user->courses()

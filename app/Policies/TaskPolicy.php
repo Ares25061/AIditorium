@@ -50,4 +50,12 @@ class TaskPolicy
         }
         return Response::deny("You don't have permission to destroy this task");
     }
+    public function viewMine(User $user, Course $course)
+    {
+        if ($user->courses()->where('course_id', $course->id)->first())
+        {
+            return Response::allow();
+        }
+        return Response::deny("You don't enrolled in this course");
+    }
 }

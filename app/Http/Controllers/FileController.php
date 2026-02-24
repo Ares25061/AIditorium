@@ -40,19 +40,15 @@ class FileController extends Controller
     public function courseFiles(Request $request, int $courseId)
     {
         $course = Course::find($courseId);
-        if (!$course) {
+        if (empty($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
-
-        // проверяем, что пользователь - учитель в этом курсе
         $this->authorize('viewAnyInCourse', [File::class, $course]);
-
         $files = File::where('course_id', $courseId)
             ->with(['user' => function($query) {
                 $query->select('id', 'name', 'email');
             }])
             ->paginate($request->per_page ?? 15);
-
         return response()->json([
             'course' => $course->only(['id', 'name', 'description', 'status']),
             'files' => $files
@@ -66,31 +62,25 @@ class FileController extends Controller
     public function studentFiles(Request $request, int $courseId, int $studentId)
     {
         $course = Course::find($courseId);
-        if (!$course) {
+        if (empty($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
-
+        $this->authorize('viewStudentFiles', [File::class, $course]);
         $student = User::find($studentId);
-        if (!$student) {
+        if (empty($student)) {
             return response()->json(['error' => 'Student not found'], 404);
         }
-
-        // проверяем, что студент учится на этом курсе
         $isInCourse = $student->courses()
             ->where('course_id', $courseId)
             ->exists();
-
-        if (!$isInCourse) {
-            return response()->json(['error' => 'Student is not enrolled in this course'], 404);
+        if (empty($isInCourse)) {
+            return response()->json([
+                'error' => 'Student is not enrolled in this course'
+            ]);
         }
-
-        // проверяем, что пользователь - учитель в этом курсе
-        $this->authorize('viewStudentFiles', [File::class, $course, $student]);
-
         $files = File::where('course_id', $courseId)
             ->where('user_id', $studentId)
             ->paginate($request->per_page ?? 15);
-
         return response()->json([
             'course' => $course->only(['id', 'name']),
             'student' => $student->only(['id', 'name', 'email']),
@@ -101,25 +91,20 @@ class FileController extends Controller
     public function downloadStudentFile(int $courseId, int $studentId, int $fileId)
     {
         $course = Course::find($courseId);
-        if (!$course) {
+        if (empty($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
-
         $file = File::where('id', $fileId)
             ->where('course_id', $courseId)
             ->where('user_id', $studentId)
             ->first();
-
-        if (!$file) {
+        if (empty($file)) {
             return response()->json(['error' => 'File not found'], 404);
         }
-
         $this->authorize('view', $file);
-
         if (Storage::disk('public')->missing($file->path)) {
             return response()->json(['error' => 'File does not exist on server'], 404);
         }
-
         return Storage::disk('public')->download($file->path);
     }
 

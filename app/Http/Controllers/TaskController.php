@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
 use App\Models\Task;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +40,8 @@ class TaskController extends Controller
         $validated['user_id'] = $user->id;
         $task = Task::create([
             ...$validated,
+            'scores' => $request->scores ?? 100,
+            'deadline' => $request->deadline ?? Carbon::now()->addDay(7),
         ]);
         return response()->json(['message' => 'Task created!', 'task' => $task], 200);
     }
@@ -81,7 +85,7 @@ class TaskController extends Controller
     {
         $task = Task::find($id);
         $course = Course::find($task->course_id);
-        $this->authorize('destroy',$course);
+        $this->authorize('delete', [Task::class,$course]);
         if (is_null($task)) {
             return response()->json(['error' => 'Task not found'], 404);
         }
@@ -89,16 +93,18 @@ class TaskController extends Controller
         return response()->json(['message' => 'Task deleted!'], 200);
     }
 
-    public function viewList(Request $request)
+    public function viewMine(int $course_id, Request $request)
     {
-        // Переделать
         $user = Auth::user();
-        $tasks = $user
-            ->tasks()
-            ->paginate($request->per_page ?? 15);
+        $course = Course::find($course_id);
+        if (empty($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $this->authorize('view-mine', [Task::class,$course]);
+        $tasks = $user->tasks()->where('course_id', $course_id)->paginate($request->per_page ?? 15);
         if ($tasks->isEmpty()) {
             return response()->json(['error' => 'Tasks not found'], 404);
         }
-        return response()->json(['tasks' => $tasks]);
+        return response()->json($tasks);
     }
 }
