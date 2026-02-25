@@ -7,10 +7,12 @@ use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\RemoveUserFromCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
+use App\Models\File;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CourseController extends Controller
@@ -42,6 +44,17 @@ class CourseController extends Controller
         $validated = $request->validated();
         $validated['creator_id'] = $user->id;
         $validated['invite_code'] = Str::random(6);
+        if(isset($validated['background_logo'])){
+            $path = $request->file('background_logo')->store('backs', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'background',
+                'is_public' => true,
+            ]);
+            $validated['background_logo_id'] = $file->id;
+            unset($validated['background_logo']);
+        }
         $course = Course::create([
             ...$validated,
             'status' => $validated['status'] ?? 'active',
@@ -73,6 +86,7 @@ class CourseController extends Controller
      */
     public function update(UpdateCourseRequest $request, int $id)
     {
+        $user = Auth::user();
         $course = Course::find($id);
         $this->authorize('update', $course);
         if (is_null($course)) {
@@ -81,6 +95,24 @@ class CourseController extends Controller
             ], 404);
         }
         $validated = $request->validated();
+        if(isset($validated['background_logo'])){
+            if (!is_null($course->background_logo_id)) {
+                $oldFile = File::find($course->background_logo_id);
+                if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
+                    Storage::delete($oldFile->path);
+                    $oldFile->delete();
+                }
+            }
+            $path = $request->file('background_logo')->store('backs', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'background',
+                'is_public' => true,
+            ]);
+            $validated['background_logo_id'] = $file->id;
+            unset($validated['background_logo']);
+        }
         $course->update([
             ...$validated,
         ]);
@@ -159,7 +191,7 @@ class CourseController extends Controller
             'course' => $course
         ], 200);
     }
-    public function addUserToCourse(AddUserToCourseRequest $request)
+    public function addUser(AddUserToCourseRequest $request)
     {
         $user = Auth::user();
         $validated = $request->validated();
@@ -177,6 +209,10 @@ class CourseController extends Controller
                 'user_id' => $user->id,
                 'course_id' => $course->id
             ], 409);
+        }
+        if($course->is_closed)
+        {
+            return response()->json(['error' => 'Course is closed', 'course'=> $course], 409);
         }
         if ($validated['code'] == $course->invite_code) {
             $user->courses()->syncWithoutDetaching($course->id);
@@ -228,5 +264,61 @@ class CourseController extends Controller
             ], 404);
         }
         return response()->json(['courses' => $courses]);
+    }
+    public function leave(int $courseId)
+    {
+        $user = Auth::user();
+        $course = Course::find($courseId);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        if ($user->courses()->where('course_id', $course->id)->doesntExist()) {
+            return response()->json([
+                'error' => 'User is not enrolled in this course',
+                'user_id' => $user->id,
+                'course_id' => $course->id
+            ], 409);
+        }
+        if($course->status = 'archived'){
+            return response()->json(['message' => 'Course is archived, you cant leave from archived course', 'course' => $course], 406);
+        }
+        $user->courses()->detach($course->id);
+        if ($user->id === $course->creator_id)
+        {
+            $course->update(['status' => 'archived']);
+            return response()->json(['message' => 'Course leaved!', 'course' => $course->only('status')], 200);
+        }
+        return response()->json(['message' => 'Course leaved!'], 200);
+    }
+    public function close(int $courseId)
+    {
+        $course = Course::find($courseId);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $this->authorize('close',$course);
+        $course->update(['is_closed' => 1]);
+        return response()->json(['message' => 'Course is closed!', 'course' => $course], 200);
+    }
+    public function reopen(int $courseId)
+    {
+        $course = Course::find($courseId);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $this->authorize('reopen',$course);
+
+        $course->update(['is_closed' => 0]);
+        return response()->json(['message' => 'Course is reopen!', 'course' => $course], 200);
+    }
+    public function regenerateInviteCode(int $courseId)
+    {
+        $course = Course::find($courseId);
+        if (is_null($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $this->authorize('regenerate-invite-code',$course);
+        $course->update(['invite_code' => Str::random(6)]);
+        return response()->json(['message' => 'Course  invite code regenerated!', 'course' => $course], 200);
     }
 }

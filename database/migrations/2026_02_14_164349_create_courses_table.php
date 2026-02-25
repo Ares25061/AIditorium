@@ -28,6 +28,8 @@ return new class extends Migration
                 ->nullable();
             $table->string('status')
                 ->default(StatusCourseEnum::ACTIVE->value);
+            $table->boolean('is_closed')
+                ->default(false);
             $table->timestamps();
         });
     }

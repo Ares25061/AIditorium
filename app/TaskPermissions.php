@@ -6,6 +6,7 @@ enum TaskPermissions : string
 {
     case VIEW = 'tasks.view';
     case VIEW_LIST = 'tasks.view-list';
+    case CREATE = 'tasks.create';
     case UPDATE = 'tasks.update';
     case DELETE = 'tasks.delete';
 

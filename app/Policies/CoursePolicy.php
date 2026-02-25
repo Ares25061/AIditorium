@@ -35,7 +35,11 @@ class CoursePolicy
         if ($user->hasPermission(CoursePermissions::UPDATE)) {
             return Response::allow();
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->role === CourseUsersRoleEnum::TEACHER->value)
+        if (empty($user->courses()->where('course_id', $course->id)->first()))
+        {
+            return Response::deny("You don't enrolled in this course");
+        }
+        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value)
         {
             return Response::allow();
         }
@@ -73,6 +77,9 @@ class CoursePolicy
         if ($user->hasPermission(CoursePermissions::GENERATE_TEACHER_CODE_INVITE)) {
             return Response::allow();
         }
+        if ($course->is_closed) {
+            return Response::deny("Course is closed");
+        }
         if ($user->id === $course->creator_id) {
             return Response::allow();
         }
@@ -92,5 +99,47 @@ class CoursePolicy
             return Response::allow();
         }
         return Response::deny("You don't have permission to remove user from this course");
+    }
+    public function close(User $user, Course $course)
+    {
+        if ($course->is_closed) {
+            return Response::deny("Course already closed");
+        }
+        if($user->hasPermission(CoursePermissions::CLOSE)) {
+            return Response::allow();
+        }
+        if($user->id === $course->creator_id)
+        {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to close this course");
+    }
+    public function reopen(User $user, Course $course)
+    {
+        if($user->hasPermission(CoursePermissions::CLOSE)) {
+            return Response::allow();
+        }
+        if (!$course->is_closed) {
+            return Response::deny("Course already open");
+        }
+        if($user->id === $course->creator_id)
+        {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to reopen this course");
+    }
+    public function regenerateInviteCode(User $user, Course $course)
+    {
+        if($user->hasPermission(CoursePermissions::CLOSE)) {
+            return Response::allow();
+        }
+        if ($course->is_closed) {
+            return Response::deny("Course is closed");
+        }
+        if($user->id === $course->creator_id)
+        {
+            return Response::allow();
+        }
+        return Response::deny("You don't have permission to regenerate invite code");
     }
 }
