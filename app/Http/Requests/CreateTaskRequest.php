@@ -19,7 +19,7 @@ class CreateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|int exists:files,id',
+            'attachment' => 'sometimes|file',
         ];
     }
 }

@@ -35,7 +35,11 @@ class CoursePolicy
         if ($user->hasPermission(CoursePermissions::UPDATE)) {
             return Response::allow();
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->role === CourseUsersRoleEnum::TEACHER->value)
+        if (empty($user->courses()->where('course_id', $course->id)->first()))
+        {
+            return Response::deny("You don't enrolled in this course");
+        }
+        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value)
         {
             return Response::allow();
         }

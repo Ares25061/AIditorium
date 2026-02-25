@@ -40,6 +40,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
 
-    Route::get('/course/{course}/task/viewMine', [TaskController::class, 'viewMine']);
-    Route::apiResource('/task', TaskController::class);
+    Route::get('/course/{course}/task/viewTasks', [TaskController::class, 'viewTasks']);
+    Route::get('/course/{course}/task', [TaskController::class, 'index']);
+    Route::get('/course/{course}/task/{taskNumber}', [TaskController::class, 'show']);
+    Route::post('/course/{course}/task', [TaskController::class, 'store']);
+    Route::patch('/course/{course}/task/{taskNumber}', [TaskController::class, 'update']);
+    Route::delete('/course/{course}/task/{taskNumber}', [TaskController::class, 'destroy']);
+
 });

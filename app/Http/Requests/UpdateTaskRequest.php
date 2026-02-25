@@ -19,7 +19,7 @@ class UpdateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|int',
+            'attachment' => 'sometimes|file',
         ];
     }
 }

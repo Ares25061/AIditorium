@@ -7,10 +7,12 @@ use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\RemoveUserFromCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
+use App\Models\File;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CourseController extends Controller
@@ -40,6 +42,17 @@ class CourseController extends Controller
         $validated = $request->validated();
         $validated['creator_id'] = $user->id;
         $validated['invite_code'] = Str::random(6);
+        if(isset($validated['background_logo'])){
+            $path = $request->file('background_logo')->store('backs', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'background',
+                'is_public' => true,
+            ]);
+            $validated['background_logo_id'] = $file->id;
+            unset($validated['background_logo']);
+        }
         $course = Course::create([
             ...$validated,
             'status' => $validated['status'] ?? 'active',
@@ -66,12 +79,31 @@ class CourseController extends Controller
      */
     public function update(UpdateCourseRequest $request, int $id)
     {
+        $user = Auth::user();
         $course = Course::find($id);
         $this->authorize('update', $course);
         if (is_null($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
         $validated = $request->validated();
+        if(isset($validated['background_logo'])){
+            if (!is_null($course->background_logo_id)) {
+                $oldFile = File::find($course->background_logo_id);
+                if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
+                    Storage::delete($oldFile->path);
+                    $oldFile->delete();
+                }
+            }
+            $path = $request->file('background_logo')->store('backs', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'background',
+                'is_public' => true,
+            ]);
+            $validated['background_logo_id'] = $file->id;
+            unset($validated['background_logo']);
+        }
         $course->update([
             ...$validated,
         ]);

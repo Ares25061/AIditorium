@@ -6,11 +6,13 @@ use App\Http\Requests\CreateTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
+use App\Models\File;
 use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
@@ -37,7 +39,23 @@ class TaskController extends Controller
     {
         $user = Auth::user();
         $validated = $request->validated();
+        $course = Course::find($validated['course_id']);
+        if (empty($course)) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+        $this->authorize('create', [Task::class, $course]);
         $validated['user_id'] = $user->id;
+        if(isset($validated['attachment'])){
+            $path = $request->file('attachment')->store('tasks', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'task',
+                'is_public' => true,
+            ]);
+            $validated['attachment_id'] = $file->id;
+            unset($validated['attachment']);
+        }
         $task = Task::create([
             ...$validated,
             'scores' => $request->scores ?? 100,
@@ -65,6 +83,7 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, int $id)
     {
+        $user = Auth::user();
         $task = Task::find($id);
         $course = Course::find($task->course_id);
         $this->authorize('update', $course);
@@ -72,6 +91,24 @@ class TaskController extends Controller
             return response()->json(['error' => 'Task not found'], 404);
         }
         $validated = $request->validated();
+        if(isset($validated['attachment'])){
+            if (!is_null($task->attachment_id)) {
+                $oldFile = File::find($task->attachment_id);
+                if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
+                    Storage::delete($oldFile->path);
+                    $oldFile->delete();
+                }
+            }
+            $path = $request->file('attachment')->store('tasks', 'public');
+            $file = File::create([
+                'path' => $path,
+                'user_id' => $user->id,
+                'type' => 'task',
+                'is_public' => true,
+            ]);
+            $validated['attachment_id'] = $file->id;
+            unset($validated['attachment']);
+        }
         $task->update([
             ...$validated,
         ]);
@@ -93,7 +130,7 @@ class TaskController extends Controller
         return response()->json(['message' => 'Task deleted!'], 200);
     }
 
-    public function viewMine(int $course_id, Request $request)
+    public function viewTasks(int $course_id, Request $request)
     {
         $user = Auth::user();
         $course = Course::find($course_id);

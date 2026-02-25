@@ -11,7 +11,7 @@ class Course extends Model
         'name',
         'invite_code',
         'invite_code_teacher',
-        'background_logo',
+        'background_logo_id',
         'description',
         'status',
         'is_closed',
