@@ -26,7 +26,9 @@ class CourseController extends Controller
         $this->authorize('view-any', Course::class);
         $courses = Course::paginate($request->per_page ?? 15);
         if ($courses->isEmpty()) {
-            return response()->json(['error' => 'Courses not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         return response()->json([
             'courses' => $courses
@@ -58,7 +60,10 @@ class CourseController extends Controller
             'status' => $validated['status'] ?? 'active',
         ]);
         $user->courses()->attach($course->id, ['role' => 'teacher']);
-        return response()->json(['message' => 'Course created!', 'course' => $user->courses()->where('course_id', $course->id)->first()], 200);
+        return response()->json([
+            'message' => __('messages.created', ['item' => __('messages.items.course')]),
+            'course' => $user->courses()->where('course_id', $course->id)->first()
+        ], 200);
     }
 
     /**
@@ -69,7 +74,9 @@ class CourseController extends Controller
         $course = Course::find($id);
         $this->authorize('view',$course);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         return response()->json(['course' => $course]);
     }
@@ -83,7 +90,9 @@ class CourseController extends Controller
         $course = Course::find($id);
         $this->authorize('update', $course);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $validated = $request->validated();
         if(isset($validated['background_logo'])){
@@ -107,7 +116,10 @@ class CourseController extends Controller
         $course->update([
             ...$validated,
         ]);
-        return response()->json(['message' => 'Course updated!', 'course' => $course], 200);
+        return response()->json([
+            'message' => __('messages.updated', ['item' => __('messages.items.course')]),
+            'course' => $course
+        ], 200);
     }
 
     /**
@@ -117,23 +129,34 @@ class CourseController extends Controller
     {
         $course = Course::find($id);
         $this->authorize('delete',$course);
+
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $course->update([
             'status' => 'archived',
         ]);
-        return response()->json(['message' => 'Course archived!', 'course' => $course], 200);
+        return response()->json([
+            'message' => __('messages.archived', ['item' => __('messages.items.course')]),
+            'course' => $course
+        ], 200);
     }
+
     public function destroy(int $id)
     {
         $course = Course::find($id);
         $this->authorize('hard-delete',$course);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $course->delete();
-        return response()->json(['message' => 'Course deleted!'], 200);
+        return response()->json([
+            'message' => __('messages.deleted', ['item' => __('messages.items.course')])
+        ], 200);
     }
 
     public function restore(int $id)
@@ -141,22 +164,32 @@ class CourseController extends Controller
         $course = Course::find($id);
         $this->authorize('restore',$course);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $course->update([
             'status' => 'active',
         ]);
-        return response()->json(['message' => 'Course is active!', 'course' => $course], 200);
+        return response()->json([
+            'message' => __('messages.restored', ['item' => __('messages.items.course')]),
+            'course' => $course
+        ], 200);
     }
     public function generateTeacherCodeInvite(int $id)
     {
         $course = Course::find($id);
         $this->authorize('generate-teacher-code-invite',$course);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $course->update(['invite_code_teacher' => Str::random(9)]);
-        return response()->json(['message' => 'Course invite code for teacher generated!', 'course' => $course], 200);
+        return response()->json([
+            'message' => __('messages.invite_code_generated'),
+            'course' => $course
+        ], 200);
     }
     public function addUser(AddUserToCourseRequest $request)
     {
@@ -166,11 +199,13 @@ class CourseController extends Controller
             ->orWhere('invite_code_teacher',$validated['code'])
             ->first();
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.invalid_invite_code')
+            ], 404);
         }
         if ($user->courses()->where('course_id', $course->id)->exists()) {
             return response()->json([
-                'error' => 'User is already enrolled in this course',
+                'error' => __('messages.already_enrolled'),
                 'user_id' => $user->id,
                 'course_id' => $course->id
             ], 409);
@@ -188,10 +223,8 @@ class CourseController extends Controller
             ]);
         }
         return response()->json([
-            'message' => 'User added to course!',
-            'user_courses' => $user->courses()
-                ->where('course_id', $course->id)
-                ->first()
+            'message' => __('messages.added', ['item' => __('messages.items.user')]),
+            'user_courses' => $user->courses()->where('course_id', $course->id)->first()
         ], 200);
     }
 
@@ -202,17 +235,21 @@ class CourseController extends Controller
         $model = User::find($validated['user_id']);
         $this->authorize('remove-user',[$course, $model]);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         if ($model->courses()->where('course_id', $course->id)->doesntExist()) {
             return response()->json([
-                'error' => 'User is not enrolled in this course',
+                'error' => __('messages.not_enrolled'),
                 'user_id' => $model->id,
                 'course_id' => $course->id
             ], 409);
         }
         $model->courses()->detach($course->id);
-        return response()->json(['message' => 'User removed from course!'], 200);
+        return response()->json([
+            'message' => __('messages.removed', ['item' => __('messages.items.user')])
+        ], 200);
     }
 
     public function viewMine(Request $request)
@@ -222,7 +259,9 @@ class CourseController extends Controller
             ->courses()
             ->paginate($request->per_page ?? 15);
         if ($courses->isEmpty()) {
-            return response()->json(['error' => 'Courses not found'], 404);
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         return response()->json(['courses' => $courses]);
     }
