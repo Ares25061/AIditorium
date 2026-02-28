@@ -11,9 +11,6 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use function PHPUnit\Framework\isEmpty;
-use App\CourseUsersRoleEnum;
 
 class FileController extends Controller
 {

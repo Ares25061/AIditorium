@@ -2,10 +2,9 @@
 
 namespace App\Policies;
 
-use App\CoursePermissions;
-use App\CourseUsersRoleEnum;
+use App\Enums\CoursePermissions;
+use App\Enums\CourseUsersRoleEnum;
 use App\Models\Course;
-use App\Models\File;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 

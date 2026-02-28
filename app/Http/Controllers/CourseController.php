@@ -18,9 +18,8 @@ use Illuminate\Support\Str;
 class CourseController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
+
+
     public function index(Request $request)
     {
         $this->authorize('view-any', Course::class);
@@ -36,7 +35,7 @@ class CourseController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Создать новый курс.
      */
     public function store(CreateCourseRequest $request)
     {
@@ -55,6 +54,15 @@ class CourseController extends Controller
             $validated['background_logo_id'] = $file->id;
             unset($validated['background_logo']);
         }
+        if(isset($validated['slug'])){
+            $validated['slug'] = Str::slug($validated['slug']);
+            if(Course::where('slug', $validated['slug'])->exists()){
+                return response()->json(['error' => "slug already exists, please choose another one"], 409);
+            }
+            else if(empty($validated['slug'])){
+                return response()->json(['error' => "slug need contains letters"], 409);
+            }
+        }
         $course = Course::create([
             ...$validated,
             'status' => $validated['status'] ?? 'active',
@@ -67,7 +75,7 @@ class CourseController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Вывод одного курса по id.
      */
     public function show(int $id)
     {
@@ -82,7 +90,7 @@ class CourseController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Обновить курс по id.
      */
     public function update(UpdateCourseRequest $request, int $id)
     {
@@ -113,6 +121,15 @@ class CourseController extends Controller
             $validated['background_logo_id'] = $file->id;
             unset($validated['background_logo']);
         }
+        if(isset($validated['slug'])){
+            $validated['slug'] = Str::slug($validated['slug']);
+            if(Course::where('slug', $validated['slug'])->exists()){
+                return response()->json(['error' => "slug already exists, please choose another one"], 409);
+            }
+            else if(empty($validated['slug'])){
+                return response()->json(['error' => "slug need contains letters"], 409);
+            }
+        }
         $course->update([
             ...$validated,
         ]);
@@ -123,7 +140,7 @@ class CourseController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Архивировать курс по id.
      */
     public function archive(int $id)
     {
@@ -144,6 +161,9 @@ class CourseController extends Controller
         ], 200);
     }
 
+    /**
+     * Удалить курс по id.
+     */
     public function destroy(int $id)
     {
         $course = Course::find($id);
@@ -159,6 +179,9 @@ class CourseController extends Controller
         ], 200);
     }
 
+    /**
+     * Восстановить  курс по id.
+     */
     public function restore(int $id)
     {
         $course = Course::find($id);
@@ -176,6 +199,10 @@ class CourseController extends Controller
             'course' => $course
         ], 200);
     }
+
+    /**
+     * Создать код приглашения для учителей по id.
+     */
     public function generateTeacherCodeInvite(int $id)
     {
         $course = Course::find($id);
@@ -191,6 +218,10 @@ class CourseController extends Controller
             'course' => $course
         ], 200);
     }
+
+    /**
+     * Добавить пользователя в курс по коду приглашения.
+     */
     public function addUser(AddUserToCourseRequest $request)
     {
         $user = Auth::user();
@@ -228,6 +259,9 @@ class CourseController extends Controller
         ], 200);
     }
 
+    /**
+     * Удалить пользователя из курса по id.
+     */
     public function removeUser(int $id, RemoveUserFromCourseRequest $request)
     {
         $course = Course::find($id);
@@ -252,6 +286,9 @@ class CourseController extends Controller
         ], 200);
     }
 
+    /**
+     * Показать курсы, в которых состоит пользователь.
+     */
     public function viewMine(Request $request)
     {
         $user = Auth::user();
@@ -265,6 +302,10 @@ class CourseController extends Controller
         }
         return response()->json(['courses' => $courses]);
     }
+
+    /**
+     * Выйти из курса.
+     */
     public function leave(int $courseId)
     {
         $user = Auth::user();
@@ -290,6 +331,10 @@ class CourseController extends Controller
         }
         return response()->json(['message' => 'Course leaved!'], 200);
     }
+
+    /**
+     * Сделать курс закрытым.
+     */
     public function close(int $courseId)
     {
         $course = Course::find($courseId);
@@ -300,6 +345,10 @@ class CourseController extends Controller
         $course->update(['is_closed' => 1]);
         return response()->json(['message' => 'Course is closed!', 'course' => $course], 200);
     }
+
+    /**
+     * Сделать курс общедоступным.
+     */
     public function reopen(int $courseId)
     {
         $course = Course::find($courseId);
@@ -311,6 +360,10 @@ class CourseController extends Controller
         $course->update(['is_closed' => 0]);
         return response()->json(['message' => 'Course is reopen!', 'course' => $course], 200);
     }
+
+    /**
+     * Сбросить код приглашения.
+     */
     public function regenerateInviteCode(int $courseId)
     {
         $course = Course::find($courseId);

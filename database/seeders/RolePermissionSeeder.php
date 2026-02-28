@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\CoursePermissions;
-use App\FilePermissions;
+use App\Enums\CoursePermissions;
+use App\Enums\DisciplinePermissions;
+use App\Enums\FilePermissions;
+use App\Enums\RolePermissions;
+use App\Enums\Roles;
+use App\Enums\TaskPermissions;
+use App\Enums\UserPermissions;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use App\Roles;
-use App\TaskPermissions;
-use App\UserPermissions;
-use App\RolePermissions;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RolePermissionSeeder extends Seeder
@@ -26,6 +26,7 @@ class RolePermissionSeeder extends Seeder
         $filePermissions = FilePermissions::values();
         $coursePermissions = CoursePermissions::values();
         $taskPermissions = TaskPermissions::values();
+        $disciplinePermissions = DisciplinePermissions::values();
         $permissions = [];
         foreach ($userPermissions as $userPermission) {
             $permissions[] = Permission::create(['name' => $userPermission]);
@@ -41,6 +42,9 @@ class RolePermissionSeeder extends Seeder
         }
         foreach ($taskPermissions as $taskPermission) {
             $permissions[] = Permission::create(['name' => $taskPermission]);
+        }
+        foreach ($disciplinePermissions as $disciplinePermission) {
+            $permissions[] = Permission::create(['name' => $disciplinePermission]);
         }
         $adminRole = Role::create(['name' => Roles::ADMIN->value]);
         $adminRole->permissions()->sync($permissions);

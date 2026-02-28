@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Enums\RolePermissions;
+use App\Enums\UserPermissions;
 use App\Models\User;
-use App\RolePermissions;
-use App\UserPermissions;
 use Illuminate\Auth\Access\Response;
 
 class UserPolicy

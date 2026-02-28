@@ -15,6 +15,7 @@ class Course extends Model
         'description',
         'status',
         'is_closed',
+        'slug',
     ];
 
     protected $casts = [

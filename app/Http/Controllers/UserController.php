@@ -10,13 +10,11 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\File;
 use App\Models\Role;
 use App\Models\User;
-use App\Roles;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
@@ -140,6 +138,10 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Регистрация пользователя.
+     * @unauthenticated
+     */
     public function register(CreateUserRequest $request)
     {
         $validated = $request->validated();
@@ -159,6 +161,10 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Вход пользователя.
+     * @unauthenticated
+     */
     public function login(LoginUserRequest $request)
     {
         $validated = $request->validated();
@@ -186,6 +192,9 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Выход из аккаунта пользователя.
+     */
     public function logout()
     {
         Auth::logout();
@@ -195,6 +204,9 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Обновление токена пользователя.
+     */
     public function refresh()
     {
         return response()->json([
@@ -206,6 +218,10 @@ class UserController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Выдать роль пользователю (только для админа).
+     */
     public function setRole(int $id,SetRoleRequest $request)
     {
         $user = User::find($id);

@@ -3,12 +3,12 @@
 namespace App\Policies;
 
 
-use App\FilePermissions;
+use App\Enums\CourseUsersRoleEnum;
+use App\Enums\FilePermissions;
 use App\Models\Course;
 use App\Models\File;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
-use App\CourseUsersRoleEnum;
 
 class FilePolicy
 {
