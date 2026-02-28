@@ -1,9 +1,9 @@
 <?php
 
+use App\Enums\TypesEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\TypesEnum;
 
 return new class extends Migration
 {

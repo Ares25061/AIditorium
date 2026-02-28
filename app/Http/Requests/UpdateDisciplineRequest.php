@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\StatusCourseEnum;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class UpdateCourseRequest extends FormRequest
+class UpdateDisciplineRequest extends FormRequest
 {
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -16,11 +15,10 @@ class UpdateCourseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string'],
-            'status' => ['sometimes', 'string',Rule::enum(StatusCourseEnum::class)],
-            'background_logo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'name' => 'sometimes|string',
             'description' => 'sometimes|string',
-            'slug' => 'sometimes|string',
+            'hours' => 'sometimes|integer',
+            'discipline_slug' => 'sometimes|string',
         ];
     }
 }

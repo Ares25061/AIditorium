@@ -4,6 +4,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\DisciplineController;
 use App\Http\Controllers\UserAvatarController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -40,11 +41,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
 
-    Route::get('/course/{course}/task/viewTasks', [TaskController::class, 'viewTasks']);
-    Route::get('/course/{course}/task', [TaskController::class, 'index']);
-    Route::get('/course/{course}/task/{taskNumber}', [TaskController::class, 'show']);
-    Route::post('/course/{course}/task', [TaskController::class, 'store']);
-    Route::patch('/course/{course}/task/{taskNumber}', [TaskController::class, 'update']);
-    Route::delete('/course/{course}/task/{taskNumber}', [TaskController::class, 'destroy']);
+    Route::get('/discipline/viewDisciplines', [DisciplineController::class, 'viewDisciplines']);
+    Route::apiResource('/discipline', DisciplineController::class);
+
+    Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
+    Route::apiResource('/task', TaskController::class);
 
 });

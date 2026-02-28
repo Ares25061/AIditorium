@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\Roles;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class SetRoleRequest extends FormRequest
+class ViewTasksRequest extends FormRequest
 {
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -16,7 +15,8 @@ class SetRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role' => ['required','string',Rule::enum(Roles::class)],
+            'course_id' => 'required|integer|exists:courses,id',
+            'per_page' => 'sometimes|integer|min:1|max:20',
         ];
     }
 }

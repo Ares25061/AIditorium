@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateTaskRequest;
+use App\Http\Requests\ShowTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
@@ -67,10 +68,11 @@ class TaskController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(int $id)
+    public function show(ShowTaskRequest $request, int $taskId)
     {
-        $task = Task::find($id);
-        $course = Course::find($task->course_id);
+        $validated = $request->validated();
+        $course = Course::find($validated['course_id']);
+        $task = Task::find($taskId)->where($course->id === $validated['course_id'])->first();
         $this->authorize('view',$course);
         if (is_null($task)) {
             return response()->json(['error' => 'Task not found'], 404);
@@ -130,15 +132,17 @@ class TaskController extends Controller
         return response()->json(['message' => 'Task deleted!'], 200);
     }
 
-    public function viewTasks(int $course_id, Request $request)
+    public function viewTasks(ViewMineTasksRequest $request)
     {
         $user = Auth::user();
-        $course = Course::find($course_id);
+        $validated = $request->validated();
+        $course = Course::find($validated['course_id']);
         if (empty($course)) {
             return response()->json(['error' => 'Course not found'], 404);
         }
         $this->authorize('view-mine', [Task::class,$course]);
-        $tasks = $user->tasks()->where('course_id', $course_id)->paginate($request->per_page ?? 15);
+        $tasks = $user->tasks()->where('course_id', $validated['course_id'])
+            ->paginate($validated['per_page'] ?? 15);
         if ($tasks->isEmpty()) {
             return response()->json(['error' => 'Tasks not found'], 404);
         }

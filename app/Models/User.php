@@ -2,20 +2,17 @@
 
 namespace App\Models;
 
-use App\CoursePermissions;
-use App\FilePermissions;
-use App\RolePermissions;
-use App\TaskPermissions;
-use App\UserPermissions;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\CoursePermissions;
+use App\Enums\DisciplinePermissions;
+use App\Enums\FilePermissions;
+use App\Enums\RolePermissions;
+use App\Enums\TaskPermissions;
+use App\Enums\UserPermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
-use App\Roles;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 
 class User extends Authenticatable implements JWTSubject
@@ -90,6 +87,10 @@ class User extends Authenticatable implements JWTSubject
             ->withPivot('role')
             ->withTimestamps();
     }
+    public function disciplines()
+    {
+        return $this->hasMany(Discipline::class);
+    }
     public function tasks()
     {
         return $this->hasMany(Task::class);
@@ -112,7 +113,7 @@ class User extends Authenticatable implements JWTSubject
         return null;
     }
 
-    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions|TaskPermissions $permission): bool
+    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions|TaskPermissions|DisciplinePermissions $permission): bool
     {
         return $this->role->permissions->contains('name', $permission->value);
     }

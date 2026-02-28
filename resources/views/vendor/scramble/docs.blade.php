@@ -110,5 +110,41 @@
         updateTheme(mediaQuery);
     </script>
 @endif
+<!-- Замените ваш блок переключателя на этот -->
+<div id="language-switcher" style="position: fixed; top: 10px; right: 260px; z-index: 10000; display: flex; gap: 5px; background: #f3f4f6; padding: 4px; border-radius: 8px; border: 1px solid #d1d5db; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <button onclick="setLanguage('ru')" id="btn-ru" style="cursor:pointer; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 12px; transition: all 0.2s;">RU</button>
+    <button onclick="setLanguage('en')" id="btn-en" style="cursor:pointer; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 12px; transition: all 0.2s;">EN</button>
+</div>
+
+<script>
+    function setLanguage(lang) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('lang', lang);
+        // Используем assign, чтобы перезагрузить страницу с новым параметром lang
+        window.location.assign(url.toString());
+    }
+
+    // Логика подсветки активной кнопки
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentLang = urlParams.get('lang') || '{{ App::getLocale() }}';
+
+    const activeBtn = document.getElementById('btn-' + currentLang);
+    if (activeBtn) {
+        activeBtn.style.backgroundColor = '#ffffff';
+        activeBtn.style.color = '#1f2937';
+        activeBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    }
+
+    // Дополнительный стиль для неактивных кнопок
+    ['ru', 'en'].forEach(l => {
+        if (l !== currentLang) {
+            const btn = document.getElementById('btn-' + l);
+            if (btn) {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.color = '#6b7280';
+            }
+        }
+    });
+</script>
 </body>
 </html>

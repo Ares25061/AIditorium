@@ -24,7 +24,7 @@ return [
         /*
          * API version.
          */
-        'version' => env('API_VERSION', '0.0.1'),
+        'version' => env('API_VERSION', '0.5'),
 
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
@@ -59,7 +59,7 @@ return [
         /*
          * URL to an image that displays as a small square logo next to the title, above the table of contents.
          */
-        'logo' => '',
+        'logo' => 'https://i.pinimg.com/736x/22/2d/c9/222dc97c3cb67bf098ca184196c095fe.jpg',
 
         /*
          * Use to fetch the credential policy for the Try It feature. Options are: omit, include (default), and same-origin

@@ -18,7 +18,12 @@ return new class extends Migration
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
             $table->string('name');
-            $table->integer('hours');
+            $table->integer('hours')
+                ->nullable();
+            $table->string('slug')
+                ->nullable();
+            $table->string('description')
+                ->nullable();
             $table->integer('discipline_number');
             $table->foreignID('created_by')
                 ->constrained('users')

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\StatusCourseEnum;
+use App\Enums\StatusCourseEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +20,7 @@ class CreateCourseRequest extends FormRequest
             'status' => ['sometimes', 'string',Rule::enum(StatusCourseEnum::class)],
             'background_logo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'description' => 'sometimes|string',
+            'slug' => 'sometimes|string',
         ];
     }
 }
