@@ -57,10 +57,10 @@ class CourseController extends Controller
         if(isset($validated['slug'])){
             $validated['slug'] = Str::slug($validated['slug']);
             if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => "slug already exists, please choose another one"], 409);
+                return response()->json(['error' => __("messages.slug_exists")], 409);
             }
             else if(empty($validated['slug'])){
-                return response()->json(['error' => "slug need contains letters"], 409);
+                return response()->json(['error' => __("messages.slug_letters")], 409);
             }
         }
         $course = Course::create([
@@ -124,10 +124,10 @@ class CourseController extends Controller
         if(isset($validated['slug'])){
             $validated['slug'] = Str::slug($validated['slug']);
             if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => "slug already exists, please choose another one"], 409);
+                return response()->json(['error' => __("messages.slug_exists")], 409);
             }
             else if(empty($validated['slug'])){
-                return response()->json(['error' => "slug need contains letters"], 409);
+                return response()->json(['error' => __("messages.slug_letters")], 409);
             }
         }
         $course->update([
@@ -243,7 +243,7 @@ class CourseController extends Controller
         }
         if($course->is_closed)
         {
-            return response()->json(['error' => 'Course is closed', 'course'=> $course], 409);
+            return response()->json(['error' => __('messages.course_closed'), 'course'=> $course], 409);
         }
         if ($validated['code'] == $course->invite_code) {
             $user->courses()->syncWithoutDetaching($course->id);
@@ -311,25 +311,26 @@ class CourseController extends Controller
         $user = Auth::user();
         $course = Course::find($courseId);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         if ($user->courses()->where('course_id', $course->id)->doesntExist()) {
             return response()->json([
-                'error' => 'User is not enrolled in this course',
+                'error' => __('messages.not_enrolled'),
                 'user_id' => $user->id,
                 'course_id' => $course->id
             ], 409);
         }
         if($course->status = 'archived'){
-            return response()->json(['message' => 'Course is archived, you cant leave from archived course', 'course' => $course], 406);
+            return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
         }
         $user->courses()->detach($course->id);
         if ($user->id === $course->creator_id)
         {
             $course->update(['status' => 'archived']);
-            return response()->json(['message' => 'Course leaved!', 'course' => $course->only('status')], 200);
+            return response()->json(['message' => __('messages.course_left'), 'course' => $course->only('status')], 200);
         }
-        return response()->json(['message' => 'Course leaved!'], 200);
+        return response()->json(['message' => __('messages.course_left')], 200);
     }
 
     /**
@@ -339,11 +340,12 @@ class CourseController extends Controller
     {
         $course = Course::find($courseId);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('close',$course);
         $course->update(['is_closed' => 1]);
-        return response()->json(['message' => 'Course is closed!', 'course' => $course], 200);
+        return response()->json(['message' => __('messages.course_closed'), 'course' => $course], 200);
     }
 
     /**
@@ -353,12 +355,13 @@ class CourseController extends Controller
     {
         $course = Course::find($courseId);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('reopen',$course);
 
         $course->update(['is_closed' => 0]);
-        return response()->json(['message' => 'Course is reopen!', 'course' => $course], 200);
+        return response()->json(['message' => __('messages.reopened', ['item' => __('messages.items.course')]),  'course' => $course], 200);
     }
 
     /**
@@ -368,10 +371,11 @@ class CourseController extends Controller
     {
         $course = Course::find($courseId);
         if (is_null($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('regenerate-invite-code',$course);
         $course->update(['invite_code' => Str::random(6)]);
-        return response()->json(['message' => 'Course  invite code regenerated!', 'course' => $course], 200);
+        return response()->json(['message' => __('messages.invite_code_regenerated'), 'course' => $course], 200);
     }
 }

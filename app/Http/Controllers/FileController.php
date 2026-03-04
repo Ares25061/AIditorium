@@ -24,7 +24,8 @@ class FileController extends Controller
         $this->authorize('viewAny', File::class);
         $files = File::paginate($request->per_page ?? 15);
         if ($files->isEmpty()) {
-            return response()->json(['error' => 'Files not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])
+            ],404);
         }
         return response()->json([
             'files' => $files
@@ -38,7 +39,8 @@ class FileController extends Controller
     {
         $course = Course::find($courseId);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('viewAnyInCourse', [File::class, $course]);
         $files = File::where('course_id', $courseId)
@@ -60,19 +62,21 @@ class FileController extends Controller
     {
         $course = Course::find($courseId);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('viewStudentFiles', [File::class, $course]);
         $student = User::find($studentId);
         if (empty($student)) {
-            return response()->json(['error' => 'Student not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.student')])
+            ], 404);
         }
         $isInCourse = $student->courses()
             ->where('course_id', $courseId)
             ->exists();
         if (empty($isInCourse)) {
             return response()->json([
-                'error' => 'Student is not enrolled in this course'
+                'error' => __('messages.not_enrolled')
             ]);
         }
         $files = File::where('course_id', $courseId)
@@ -89,18 +93,20 @@ class FileController extends Controller
     {
         $course = Course::find($courseId);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $file = File::where('id', $fileId)
             ->where('course_id', $courseId)
             ->where('user_id', $studentId)
             ->first();
         if (empty($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])
+            ], 404);
         }
         $this->authorize('view', $file);
         if (Storage::disk('public')->missing($file->path)) {
-            return response()->json(['error' => 'File does not exist on server'], 404);
+            return response()->json(['error' => __('messages.file_not_on_server')], 404);
         }
         return Storage::disk('public')->download($file->path);
     }
@@ -122,7 +128,7 @@ class FileController extends Controller
             'task_id' => $validated['task_id'] ?? null,
             'is_public' => $validated['is_public'] ?? false,
         ]);
-        return response()->json(['message' => 'File created!', 'file' => $file], 200);
+        return response()->json(['message' => __('messages.created', ['item' => __('messages.items.file')]), 'file' => $file], 200);
     }
 
     /**
@@ -133,7 +139,7 @@ class FileController extends Controller
         $file = File::find($id);
         $this->authorize('view',$file);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         return response()->json(['file' => $file]);
     }
@@ -146,7 +152,7 @@ class FileController extends Controller
         $this->authorize('update', File::class);
         $file = File::find($id);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $validated = $request->validated();
         if (!empty($validated['type'])) {
@@ -157,7 +163,7 @@ class FileController extends Controller
         $file->update([
             ...$validated,
         ]);
-        return response()->json(['message' => 'File updated!', 'file' => $file], 200);
+        return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.file')])], 200);
     }
 
     /**
@@ -168,24 +174,24 @@ class FileController extends Controller
         $file = File::find($id);
         $this->authorize('delete',$file);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         if(Storage::exists($file->path)) {
             Storage::delete($file->path);
         }
         $file->delete();
-        return response()->json(['message' => 'File deleted']);
+        return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.file')])]);
     }
 
     public function download(int $id)
     {
         $file = File::find($id);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $this->authorize('view', $file);
         if (Storage::missing($file->path)) {
-            return response()->json(['error' => 'File does not exist on server'], 404);
+            return response()->json(['error' => __('messages.file_not_on_server')], 404);
         }
         return Storage::download($file->path);
     }

@@ -17,7 +17,7 @@ class FilePolicy
         if ($user->hasPermission(FilePermissions::VIEW_LIST)) {
             return Response::allow();
         }
-        return Response::deny('You do not have permission to view any files.');
+        return Response::deny(__('policies.file.view_any.deny'));
     }
     public function view(User $user, File $file)
     {
@@ -31,7 +31,7 @@ class FilePolicy
             return $this->checkCourseAccess($user, $file);
         } // проверка прав в курсе
 
-        return Response::deny("You don't have permission to view this file");
+        return Response::deny(__('policies.file.view.deny'));
 
     }
     // проверка для конкретного файла
@@ -40,7 +40,7 @@ class FilePolicy
         $course = Course::find($file->course_id);
 
         if (!$course) {
-            return Response::deny('Course not found');
+            return Response::deny(__('messages.not_found', ['item' => __('messages.items.course')]));
         }
 
         // проверяем, является ли пользователь учителем в этом курсе
@@ -57,7 +57,7 @@ class FilePolicy
             return Response::allow();
         }
 
-        return Response::deny('You cannot view files from other students in this course');
+        return Response::deny(__('policies.file.check_course_access.deny'));
     }
 
     // просмотр всех файлов - только для учителя
@@ -72,7 +72,7 @@ class FilePolicy
             return Response::allow();
         }
 
-        return Response::deny('Only teachers can view all files in course');
+        return Response::deny(__('policies.file.view_any_in_course.deny'));
     }
 
     public function viewStudentFiles(User $user, Course $course): Response
@@ -86,7 +86,7 @@ class FilePolicy
             return Response::allow();
         }
 
-        return Response::deny('You cannot view this student\'s files');
+        return Response::deny(__('policies.file.view_student_files.deny'));
     }
 
 
@@ -95,7 +95,7 @@ class FilePolicy
         if ($user->hasPermission(FilePermissions::UPDATE)) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to update files");
+        return Response::deny(__('policies.file.update.deny'));
     }
     public function delete(User $user, File $file)
     {
@@ -105,6 +105,6 @@ class FilePolicy
         if ($user->id === $file->user_id) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to delete files");
+        return Response::deny(__('policies.file.delete.deny'));
     }
 }

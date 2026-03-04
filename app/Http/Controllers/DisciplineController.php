@@ -29,7 +29,7 @@ class DisciplineController extends Controller
         $this->authorize('view-any', Discipline::class);
         $disciplines = Discipline::paginate($request->per_page ?? 15);
         if ($disciplines->isEmpty()) {
-            return response()->json(['error' => 'Disciplines not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         return response()->json([
             'disciplines' => $disciplines
@@ -45,7 +45,8 @@ class DisciplineController extends Controller
         $validated = $request->validated();
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('create', [Discipline::class, $course]);
 
@@ -54,7 +55,7 @@ class DisciplineController extends Controller
             ...$validated,
 
         ]);
-        return response()->json(['message' => 'Discipline created!', 'discipline' => $discipline], 200);
+        return response()->json(['message' => __('messages.created', ['item' => __('messages.items.discipline')]), 'discipline' => $discipline], 200);
     }
 
     /**
@@ -67,7 +68,7 @@ class DisciplineController extends Controller
         $discipline = Discipline::find($id);
         $this->authorize('view',[Discipline::class, $course]);
         if (is_null($discipline)) {
-            return response()->json(['error' => 'Discipline not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         return response()->json(['discipline' => $discipline]);
     }
@@ -82,12 +83,12 @@ class DisciplineController extends Controller
         $course = Course::find($discipline->course_id);
         $this->authorize('update', [Discipline::class, $course]);
         if (is_null($discipline)) {
-            return response()->json(['error' => 'Discipline not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         $discipline->update([
             ...$validated,
         ]);
-        return response()->json(['message' => 'Discipline updated!', 'discipline' => $discipline], 200);
+        return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.discipline')])], 200);
     }
 
     /**
@@ -99,10 +100,10 @@ class DisciplineController extends Controller
         $course = Course::find($discipline->course_id);
         $this->authorize('delete', [Discipline::class,$course]);
         if (is_null($discipline)) {
-            return response()->json(['error' => 'Discipline not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         $discipline->delete();
-        return response()->json(['message' => 'Discipline deleted!'], 200);
+        return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.discipline')])], 200);
     }
 
     public function viewDisciplines(ViewMineTasksRequest $request)
@@ -111,13 +112,14 @@ class DisciplineController extends Controller
         $validated = $request->validated();
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
         }
         $this->authorize('view-disciplines', [Discipline::class,$course]);
         $disciplines = $user->disciplines()->where('course_id', $validated['course_id'])
             ->paginate($validated['per_page'] ?? 15);
         if ($disciplines->isEmpty()) {
-            return response()->json(['error' => 'Disciplines not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         return response()->json($disciplines);
     }
