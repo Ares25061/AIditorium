@@ -63,5 +63,6 @@ return [
     'status' => [
         'success' => 'success',
         'error' => 'error',
+        'unauthenticated' => 'Unauthenticated',
     ],
 ];

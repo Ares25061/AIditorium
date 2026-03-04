@@ -62,5 +62,6 @@ return [
     'status' => [
         'success' => 'успех',
         'error' => 'ошибка',
+        'unauthenticated' => 'Неавторизированный запрос.',
     ],
 ];

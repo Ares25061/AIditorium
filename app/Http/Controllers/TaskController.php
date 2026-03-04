@@ -18,9 +18,7 @@ use Illuminate\Support\Facades\Storage;
 class TaskController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $this->authorize('view-any', Task::class);
@@ -33,9 +31,7 @@ class TaskController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(CreateTaskRequest $request)
     {
         $user = Auth::user();
@@ -65,9 +61,7 @@ class TaskController extends Controller
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
-    /**
-     * Display the specified resource.
-     */
+
     public function show(ShowTaskRequest $request, int $taskId)
     {
         $validated = $request->validated();
@@ -80,9 +74,7 @@ class TaskController extends Controller
         return response()->json(['task' => $task]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(UpdateTaskRequest $request, int $id)
     {
         $user = Auth::user();
@@ -117,9 +109,7 @@ class TaskController extends Controller
         return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+
     public function destroy(int $id)
     {
         $task = Task::find($id);

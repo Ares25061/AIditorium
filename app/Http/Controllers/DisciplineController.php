@@ -17,13 +17,13 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Dedoc\Scramble\Attributes\Route as ScrambleRoute;
+
 
 class DisciplineController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $this->authorize('view-any', Discipline::class);
@@ -36,9 +36,7 @@ class DisciplineController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(CreateDisciplineRequest $request)
     {
         $user = Auth::user();
@@ -58,9 +56,7 @@ class DisciplineController extends Controller
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.discipline')]), 'discipline' => $discipline], 200);
     }
 
-    /**
-     * Display the specified resource.
-     */
+
     public function show(ShowTaskRequest $request,int $id)
     {
         $validated = $request->validated();
@@ -73,9 +69,7 @@ class DisciplineController extends Controller
         return response()->json(['discipline' => $discipline]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(UpdateDisciplineRequest $request, int $id)
     {
         $discipline = Discipline::find($id);
@@ -91,9 +85,7 @@ class DisciplineController extends Controller
         return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.discipline')])], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+
     public function destroy(int $id)
     {
         $discipline = Discipline::find($id);
@@ -105,6 +97,7 @@ class DisciplineController extends Controller
         $discipline->delete();
         return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.discipline')])], 200);
     }
+
 
     public function viewDisciplines(ViewMineTasksRequest $request)
     {
