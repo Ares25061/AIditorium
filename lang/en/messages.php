@@ -9,6 +9,7 @@ return [
     'restored' => ':item restored successfully!',
     'added' => ':item added successfully!',
     'removed' => ':item removed successfully!',
+    'reopened' => ':item reopened successfully!',
     'generated' => ':item generated successfully!',
     'uploaded' => ':item uploaded successfully!',
     'registered' => 'User registered successfully',
@@ -18,6 +19,8 @@ return [
     'role_set' => 'Role set successfully',
     'edited' => ':item edited successfully!',
     'invite_code_generated' => 'Course invite code generated successfully!',
+    'invite_code_regenerated' => 'Course invite code regenerated successfully!',
+    'course_left' => 'Course left!',
 
     // Error messages
     'not_found' => ':item not found',
@@ -31,13 +34,18 @@ return [
     // Specific errors
     'already_enrolled' => 'User is already enrolled in this course',
     'not_enrolled' => 'User is not enrolled in this course',
+    'course_closed' => 'Course is closed',
+    'course_archived' => 'Cant leave from an archived course',
     'invalid_invite_code' => 'Invalid invite code',
     'file_not_on_server' => 'File does not exist on server',
     'student_not_enrolled' => 'Student is not enrolled in this course',
+    'slug_letters' => 'slug needs to contain letters',
+    'slug_exists' => 'slug already exists',
 
     // Items names (for :item placeholder)
     'items' => [
         'course' => 'Course',
+        'discipline' => 'Discipline',
         'file' => 'File',
         'user' => 'User',
         'task' => 'Task',
@@ -49,12 +57,6 @@ return [
         'task_list' => 'Tasks',
         'invite_code' => 'Invite code',
 
-    ],
-
-    // Auth specific
-    'auth' => [
-        'token_type' => 'bearer',
-        'authorization' => 'Authorization',
     ],
 
     // Status messages

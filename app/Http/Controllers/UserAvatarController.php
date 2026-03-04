@@ -44,7 +44,7 @@ class UserAvatarController extends Controller
         $user->update(['avatar' => $file->id]);
         return response()->json([
             'status' => 'success',
-            'message' => 'Avatar uploaded successfully!',
+            'message' => __('messages.uploaded', ['item' => __('messages.items.avatar')]),
             'user' => $user->load('avatarFile'),  // подгружаем связь
             'avatar_url' => $user->avatar_url,
             'file' => $file
@@ -73,7 +73,7 @@ class UserAvatarController extends Controller
         $user->update(['avatar' => null]);
         return response()->json([
             'status' => 'success',
-            'message' => 'Avatar destroyed successfully!',
+            'message' => __('messages.not_found', ['item' => __('messages.items.task')]),
         ]);
     }
 }

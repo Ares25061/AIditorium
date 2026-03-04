@@ -10,76 +10,72 @@ use Illuminate\Auth\Access\Response;
 
 class DisciplinePolicy
 {
-
     public function viewAny(User $user)
     {
         if ($user->hasPermission(DisciplinePermissions::VIEW_LIST)) {
             return Response::allow();
         }
-        return Response::deny('You do not have permission to view any disciplines.');
+        return Response::deny(__('policies.discipline.view_any.deny'));
     }
-    public function view(User $user,Course $course)
+
+    public function view(User $user, Course $course)
     {
         if ($user->hasPermission(DisciplinePermissions::VIEW)) {
             return Response::allow();
         }
-        if (!empty($user->courses()->where('course_id', $course->id)->first())){
+        if (!empty($user->courses()->where('course_id', $course->id)->first())) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to view this discipline in course");
-
+        return Response::deny(__('policies.discipline.view.deny'));
     }
+
     public function create(User $user, Course $course)
     {
         if ($user->hasPermission(DisciplinePermissions::CREATE)) {
             return Response::allow();
         }
-        if (empty($user->courses()->where('course_id', $course->id)->first()))
-        {
-            return Response::deny("You don't enrolled in this course");
+        if (empty($user->courses()->where('course_id', $course->id)->first())) {
+            return Response::deny(__('messages.not_enrolled'));
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value)
-        {
+        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to create disciplines in this course");
+        return Response::deny(__('policies.discipline.create.deny'));
     }
+
     public function update(User $user, Course $course)
     {
         if ($user->hasPermission(DisciplinePermissions::UPDATE)) {
             return Response::allow();
         }
-        if (empty($user->courses()->where('course_id', $course->id)->first()))
-        {
-            return Response::deny("You don't enrolled in this course");
+        if (empty($user->courses()->where('course_id', $course->id)->first())) {
+            return Response::deny(__('messages.not_enrolled'));
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value)
-        {
+        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to update disciplines in this course");
+        return Response::deny(__('policies.discipline.update.deny'));
     }
+
     public function delete(User $user, Course $course)
     {
         if ($user->hasPermission(DisciplinePermissions::DELETE)) {
             return Response::allow();
         }
-        if (empty($user->courses()->where('course_id', $course->id)->first()))
-        {
-            return Response::deny("You don't enrolled in this course");
+        if (empty($user->courses()->where('course_id', $course->id)->first())) {
+            return Response::deny(__('messages.not_enrolled'));
         }
-        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value)
-        {
+        if ($user->courses()->where('course_id', $course->id)->first()->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to destroy this discipline in this course");
+        return Response::deny(__('policies.discipline.delete.deny'));
     }
+
     public function viewDisciplines(User $user, Course $course)
     {
-        if ($user->courses()->where('course_id', $course->id)->first())
-        {
+        if ($user->courses()->where('course_id', $course->id)->first()) {
             return Response::allow();
         }
-        return Response::deny("You don't enrolled in this course");
+        return Response::deny(__('messages.not_enrolled'));
     }
 }

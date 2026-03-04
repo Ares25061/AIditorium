@@ -26,7 +26,7 @@ class TaskController extends Controller
         $this->authorize('view-any', Task::class);
         $tasks = Task::paginate($request->per_page ?? 15);
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'Tasks not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         return response()->json([
             'tasks' => $tasks
@@ -42,7 +42,7 @@ class TaskController extends Controller
         $validated = $request->validated();
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('create', [Task::class, $course]);
         $validated['user_id'] = $user->id;
@@ -62,7 +62,7 @@ class TaskController extends Controller
             'scores' => $request->scores ?? 100,
             'deadline' => $request->deadline ?? Carbon::now()->addDay(7),
         ]);
-        return response()->json(['message' => 'Task created!', 'task' => $task], 200);
+        return response()->json(['message' => __('messages.created', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
     /**
@@ -75,7 +75,7 @@ class TaskController extends Controller
         $task = Task::find($taskId)->where($course->id === $validated['course_id'])->first();
         $this->authorize('view',$course);
         if (is_null($task)) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         return response()->json(['task' => $task]);
     }
@@ -90,7 +90,7 @@ class TaskController extends Controller
         $course = Course::find($task->course_id);
         $this->authorize('update', $course);
         if (is_null($task)) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         $validated = $request->validated();
         if(isset($validated['attachment'])){
@@ -114,7 +114,7 @@ class TaskController extends Controller
         $task->update([
             ...$validated,
         ]);
-        return response()->json(['message' => 'Task updated!', 'task' => $task], 200);
+        return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
     /**
@@ -126,10 +126,10 @@ class TaskController extends Controller
         $course = Course::find($task->course_id);
         $this->authorize('delete', [Task::class,$course]);
         if (is_null($task)) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         $task->delete();
-        return response()->json(['message' => 'Task deleted!'], 200);
+        return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.task')])], 200);
     }
 
     public function viewTasks(ViewMineTasksRequest $request)
@@ -138,13 +138,13 @@ class TaskController extends Controller
         $validated = $request->validated();
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => 'Course not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('view-mine', [Task::class,$course]);
         $tasks = $user->tasks()->where('course_id', $validated['course_id'])
             ->paginate($validated['per_page'] ?? 15);
         if ($tasks->isEmpty()) {
-            return response()->json(['error' => 'Tasks not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         return response()->json($tasks);
     }

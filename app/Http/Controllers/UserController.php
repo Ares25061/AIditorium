@@ -28,10 +28,10 @@ class UserController extends Controller
         $this->authorize('view-list',User::class);
         $users = User::with(['role'])->paginate($request->per_page ?? 10, ['*'], 'page', $request->page ?? 1);
         if ($users->isEmpty()) {
-            return response()->json(['error' => 'Users not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
 
-        return response()->json(['status'=> 'success','users' => $users], 200);
+        return response()->json(['status'=> __('messages.status.success'), 'users' => $users], 200);
     }
     /**
      * Store a newly created resource in storage.
@@ -45,8 +45,8 @@ class UserController extends Controller
         $user = User::create($validated);
         $user->refresh();
         return response()->json([
-            'status'=> 'success',
-            'message' => 'User created!',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.created', ['item' => __('messages.items.user')]),
             'user' => $user,
         ]);
     }
@@ -58,11 +58,11 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
         $this->authorize('view',$user);
         return response()->json([
-            'status'=> 'success',
+            'status'=> __('messages.status.success'),
             'user' => $user,
         ]);
     }
@@ -75,9 +75,8 @@ class UserController extends Controller
         $user = Auth::user();
         if (is_null($user)) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'User not found'
-            ], 404);
+                'status' => __('messages.status.error'),
+                'message' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
         $validated = $request->validated();
         $user->update([
@@ -85,8 +84,8 @@ class UserController extends Controller
             'email_verified_at'=> !empty($validated['email']) ? null : $user->email_verified_at,
         ]);
         return response()->json([
-            'status'=> 'success',
-            'message' => 'User edited!',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.edited', ['item' => __('messages.items.user')]),
             'user' => $user,
         ]);
     }
@@ -98,7 +97,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
         $this->authorize('update',$user);
         $validated = $request->validated();
@@ -108,8 +107,8 @@ class UserController extends Controller
             'password' => !empty($validated['password']) ? Hash::make($validated['password']) : $user->password
         ]);
         return response()->json([
-            'status'=> 'success',
-            'message' => 'User updated!',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.updated', ['item' => __('messages.items.user')]),
             'user' => $user,
         ]);
     }
@@ -121,7 +120,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
         $this->authorize('delete',$user);
         if (!is_null($user->avatar)) {
@@ -133,8 +132,8 @@ class UserController extends Controller
         }
         $user->delete();
         return response()->json([
-            'status'=> 'success',
-            'message' => 'User deleted',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.deleted', ['item' => __('messages.items.user')]),
         ]);
     }
 
@@ -151,8 +150,8 @@ class UserController extends Controller
         $user = User::create($validated);
         $token = Auth::login($user);
         return response()->json([
-            'status' => 'success',
-            'message' => 'User registered successfully',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.registered'),
             'user' => $user,
             'authorization' => [
                 'token' => $token,
@@ -175,14 +174,14 @@ class UserController extends Controller
         $token = Auth::attempt($credentials);
         if (!$token) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid credentials',
+                'status'=> __('messages.status.error'),
+                'message' => __('messages.invalid_credentials'),
             ], 401);
         }
 
         $user = Auth::user();
         return response()->json([
-            'status' => 'success',
+            'status'=> __('messages.status.success'),
             'token' => $token,
             'user' => $user,
             'authorization' => [
@@ -199,8 +198,8 @@ class UserController extends Controller
     {
         Auth::logout();
         return response()->json([
-            'status' => 'success',
-            'message' => 'logged out',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.logged_out'),
         ]);
     }
 
@@ -210,7 +209,7 @@ class UserController extends Controller
     public function refresh()
     {
         return response()->json([
-            'status' => 'success',
+            'status'=> __('messages.status.success'),
             'user' => Auth::user(),
             'authorization' => [
                 'token' => Auth::refresh(),
@@ -226,14 +225,14 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
         $this->authorize('set-role',$user);
         $user->role_id = Role::where('name', $request->role)->value('id');
         $user->save();
         return response()->json([
-            'status'=> 'success',
-            'message' => 'User set role!',
+            'status'=> __('messages.status.success'),
+            'message' => __('messages.role_set'),
             'user' => $user
         ]);
     }
