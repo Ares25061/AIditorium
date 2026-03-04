@@ -34,9 +34,7 @@ class CourseController extends Controller
         ]);
     }
 
-    /**
-     * Создать новый курс.
-     */
+
     public function store(CreateCourseRequest $request)
     {
         $user = Auth::user();
@@ -74,9 +72,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Вывод одного курса по id.
-     */
+
     public function show(int $id)
     {
         $course = Course::find($id);
@@ -89,9 +85,7 @@ class CourseController extends Controller
         return response()->json(['course' => $course]);
     }
 
-    /**
-     * Обновить курс по id.
-     */
+
     public function update(UpdateCourseRequest $request, int $id)
     {
         $user = Auth::user();
@@ -139,9 +133,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Архивировать курс по id.
-     */
+
     public function archive(int $id)
     {
         $course = Course::find($id);
@@ -161,9 +153,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить курс по id.
-     */
+
     public function destroy(int $id)
     {
         $course = Course::find($id);
@@ -179,9 +169,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Восстановить  курс по id.
-     */
+
     public function restore(int $id)
     {
         $course = Course::find($id);
@@ -200,9 +188,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Создать код приглашения для учителей по id.
-     */
+
     public function generateTeacherCodeInvite(int $id)
     {
         $course = Course::find($id);
@@ -219,9 +205,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Добавить пользователя в курс по коду приглашения.
-     */
+
     public function addUser(AddUserToCourseRequest $request)
     {
         $user = Auth::user();
@@ -259,9 +243,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить пользователя из курса по id.
-     */
+
     public function removeUser(int $id, RemoveUserFromCourseRequest $request)
     {
         $course = Course::find($id);
@@ -286,9 +268,7 @@ class CourseController extends Controller
         ], 200);
     }
 
-    /**
-     * Показать курсы, в которых состоит пользователь.
-     */
+
     public function viewMine(Request $request)
     {
         $user = Auth::user();
@@ -303,9 +283,7 @@ class CourseController extends Controller
         return response()->json(['courses' => $courses]);
     }
 
-    /**
-     * Выйти из курса.
-     */
+
     public function leave(int $courseId)
     {
         $user = Auth::user();
@@ -333,9 +311,7 @@ class CourseController extends Controller
         return response()->json(['message' => __('messages.course_left')], 200);
     }
 
-    /**
-     * Сделать курс закрытым.
-     */
+
     public function close(int $courseId)
     {
         $course = Course::find($courseId);
@@ -348,9 +324,7 @@ class CourseController extends Controller
         return response()->json(['message' => __('messages.course_closed'), 'course' => $course], 200);
     }
 
-    /**
-     * Сделать курс общедоступным.
-     */
+
     public function reopen(int $courseId)
     {
         $course = Course::find($courseId);
@@ -364,9 +338,7 @@ class CourseController extends Controller
         return response()->json(['message' => __('messages.reopened', ['item' => __('messages.items.course')]),  'course' => $course], 200);
     }
 
-    /**
-     * Сбросить код приглашения.
-     */
+
     public function regenerateInviteCode(int $courseId)
     {
         $course = Course::find($courseId);

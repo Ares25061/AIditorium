@@ -20,9 +20,7 @@ use Illuminate\Support\Facades\Storage;
 class UserController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $this->authorize('view-list',User::class);
@@ -33,9 +31,7 @@ class UserController extends Controller
 
         return response()->json(['status'=> __('messages.status.success'), 'users' => $users], 200);
     }
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(CreateUserRequest $request)
     {
         $validated = $request->validated();
@@ -51,9 +47,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(int $id)
     {
         $user = User::find($id);
@@ -67,9 +60,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(EditUserRequest $request)
     {
         $user = Auth::user();
@@ -90,9 +80,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateUserRequest $request, int $id)
     {
         $user = User::find($id);
@@ -113,9 +100,7 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+
     public function destroy(int $id)
     {
         $user = User::find($id);
@@ -137,10 +122,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Регистрация пользователя.
-     * @unauthenticated
-     */
     public function register(CreateUserRequest $request)
     {
         $validated = $request->validated();
@@ -160,10 +141,7 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Вход пользователя.
-     * @unauthenticated
-     */
+
     public function login(LoginUserRequest $request)
     {
         $validated = $request->validated();
@@ -191,9 +169,7 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Выход из аккаунта пользователя.
-     */
+
     public function logout()
     {
         Auth::logout();
@@ -203,9 +179,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Обновление токена пользователя.
-     */
     public function refresh()
     {
         return response()->json([
@@ -218,9 +191,7 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Выдать роль пользователю (только для админа).
-     */
+
     public function setRole(int $id,SetRoleRequest $request)
     {
         $user = User::find($id);

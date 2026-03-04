@@ -16,9 +16,7 @@ class FileController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', File::class);
@@ -32,9 +30,7 @@ class FileController extends Controller
         ]);
     }
 
-    /**
-     *  получить все файлы курса (для учителя)
-     */
+
     public function courseFiles(Request $request, int $courseId)
     {
         $course = Course::find($courseId);
@@ -55,9 +51,6 @@ class FileController extends Controller
     }
 
 
-    /**
-     * получить файлы конкретного студента в курсе (для учителя)
-     */
     public function studentFiles(Request $request, int $courseId, int $studentId)
     {
         $course = Course::find($courseId);
@@ -112,9 +105,7 @@ class FileController extends Controller
     }
 
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(CreateFileRequest $request)
     {
         $user = Auth::user();
@@ -131,9 +122,7 @@ class FileController extends Controller
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.file')]), 'file' => $file], 200);
     }
 
-    /**
-     * Display the specified resource.
-     */
+
     public function show(int $id)
     {
         $file = File::find($id);
@@ -144,9 +133,7 @@ class FileController extends Controller
         return response()->json(['file' => $file]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(UpdateFileRequest $request, int $id)
     {
         $this->authorize('update', File::class);
@@ -166,9 +153,7 @@ class FileController extends Controller
         return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.file')])], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+
     public function destroy(int $id)
     {
         $file = File::find($id);
