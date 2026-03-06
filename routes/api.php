@@ -41,10 +41,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/course/restore/{course}', [CourseController::class, 'restore']);
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
 
-    Route::get('/discipline/viewDisciplines', [DisciplineController::class, 'viewDisciplines']);
+    Route::post('/discipline/viewDisciplines', [DisciplineController::class, 'viewDisciplines']);
     Route::apiResource('/discipline', DisciplineController::class);
 
-    Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
+    Route::post('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::apiResource('/task', TaskController::class);
 
 });

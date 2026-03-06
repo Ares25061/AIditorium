@@ -15,6 +15,7 @@ class CreateTaskRequest extends FormRequest
     {
         return [
             'course_id' => 'required|exists:courses,id',
+            'discipline_id' => 'required|exists:disciplines,id',
             'name' => 'required|string',
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',

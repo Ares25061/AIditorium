@@ -15,6 +15,7 @@ class ViewMineTasksRequest extends FormRequest
     {
         return [
             'course_id' => 'required|integer|exists:courses,id',
+            'discipline_id' => 'sometimes|integer|exists:disciplines,id',
             'per_page' => 'sometimes|integer|min:1|max:100',
         ];
     }

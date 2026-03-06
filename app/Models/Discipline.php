@@ -11,14 +11,20 @@ class Discipline extends Model
         'name',
         'hours',
         'discipline_number',
-        'discipline_slug',
+        'slug',
         'created_by',
         'description',
+    ];
+
+    protected $attributes = [
+        'hours' => null,
+        'slug' => null,
+        'description' => null,
     ];
     protected static function booted()
     {
         static::creating(function ($discipline) {
-            $maxDisciplineNumber = Discipline::where('discipline_id', $discipline->course_id)
+            $maxDisciplineNumber = Discipline::where('course_id', $discipline->course_id)
                 ->max('discipline_number');
             $discipline->discipline_number = ($maxDisciplineNumber ?? 0) + 1;
         });

@@ -18,7 +18,7 @@ class CreateDisciplineRequest extends FormRequest
             'name' => 'required|string',
             'description' => 'sometimes|string',
             'hours' => 'sometimes|integer',
-            'discipline_slug' => 'sometimes|string',
+            'slug' => 'sometimes|string',
         ];
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\ShowTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
+use App\Models\Discipline;
 use App\Models\File;
 use App\Models\Task;
 use Carbon\Carbon;
@@ -62,12 +63,12 @@ class TaskController extends Controller
     }
 
 
-    public function show(ShowTaskRequest $request, int $taskId)
+    public function show(int $id)
     {
-        $validated = $request->validated();
-        $course = Course::find($validated['course_id']);
-        $task = Task::find($taskId)->where($course->id === $validated['course_id'])->first();
-        $this->authorize('view',$course);
+        $task = Task::find($id);
+        $discipline = Discipline::find($task->discipline_id);
+        $course = Course::find($discipline->course_id);
+        $this->authorize('view',[Task::class, $course]);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -130,12 +131,21 @@ class TaskController extends Controller
         if (empty($course)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
-        $this->authorize('view-mine', [Task::class,$course]);
-        $tasks = $user->tasks()->where('course_id', $validated['course_id'])
-            ->paginate($validated['per_page'] ?? 15);
-        if ($tasks->isEmpty()) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
+        $this->authorize('view-mine', [Task::class, $course]);
+        $query = $user->tasks()->where('course_id', $validated['course_id']);
+        if (isset($validated['discipline_id'])) {
+            $discipline = Discipline::find($validated['discipline_id']);
+            if (empty($discipline)) {
+                return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
+            }
+            $query->where('discipline_id', $validated['discipline_id']);
         }
+        if (isset($validated['sort_by']) && isset($validated['sort_direction'])) {
+            $query->orderBy($validated['sort_by'], $validated['sort_direction']);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+        $tasks = $query->paginate($validated['per_page'] ?? 15);
         return response()->json($tasks);
     }
 }
