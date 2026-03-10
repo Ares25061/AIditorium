@@ -41,6 +41,7 @@ return [
     'student_not_enrolled' => 'Student is not enrolled in this course',
     'slug_letters' => 'slug needs to contain letters',
     'slug_exists' => 'slug already exists',
+    'slug_exists_in_course' => 'slug already exists in this course',
 
     // Items names (for :item placeholder)
     'items' => [

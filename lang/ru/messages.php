@@ -41,6 +41,7 @@ return [
     'student_not_enrolled' => 'Студент не записан на этот курс',
     'slug_letters' => 'slug должен содержать буквы',
     'slug_exists' => 'slug уже существует',
+    'slug_exists_in_course' => 'slug уже существует в этом курсе',
 
     // Items names
     'items' => [
