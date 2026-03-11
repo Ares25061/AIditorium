@@ -73,6 +73,9 @@ class DisciplinePolicy
 
     public function viewDisciplines(User $user, Course $course)
     {
+        if ($user->hasPermission(DisciplinePermissions::VIEW_LIST)) {
+            return Response::allow();
+        }
         if ($user->courses()->where('course_id', $course->id)->first()) {
             return Response::allow();
         }
