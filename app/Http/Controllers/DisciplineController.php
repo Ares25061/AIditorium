@@ -130,7 +130,7 @@ class DisciplineController extends Controller
             ], 404);
         }
         $this->authorize('view-disciplines', [Discipline::class,$course]);
-        $disciplines = $user->disciplines()->where('course_id', $validated['course_id'])
+        $disciplines = Discipline::where('course_id', $validated['course_id'])
             ->paginate($validated['per_page'] ?? 15);
         if ($disciplines->isEmpty()) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
