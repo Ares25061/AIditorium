@@ -142,4 +142,18 @@ class CoursePolicy
         }
         return Response::deny(__('policies.course.regenerate_invite.deny'));
     }
+
+    public function getUsers(User $user, Course $course)
+    {
+        if ($user->hasPermission(CoursePermissions::VIEW)) {
+            return Response::allow();
+        }
+        if (!empty($user->courses()->where('course_id', $course->id)->first())) {
+            return Response::allow();
+        }
+        if (empty($user->courses()->where('course_id', $course->id)->first())) {
+            return Response::deny(__('policies.course.get_users.not_enrolled'));
+        }
+        return Response::deny(__('policies.course.get_users.deny'));
+    }
 }

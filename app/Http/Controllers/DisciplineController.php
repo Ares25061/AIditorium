@@ -120,17 +120,20 @@ class DisciplineController extends Controller
     }
 
 
-    public function viewDisciplines(ViewMineTasksRequest $request)
+    public function viewDisciplines(Request $request)
     {
-        $user = Auth::user();
-        $validated = $request->validated();
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
-        $this->authorize('view-disciplines', [Discipline::class,$course]);
-        $disciplines = $user->disciplines()->where('course_id', $validated['course_id'])
+        $this->authorize('view-disciplines', [Discipline::class, $course]);
+        $disciplines = Discipline::withCount('tasks')
+            ->where('course_id', $validated['course_id'])
             ->paginate($validated['per_page'] ?? 15);
         if ($disciplines->isEmpty()) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);

@@ -89,7 +89,7 @@ class User extends Authenticatable implements JWTSubject
     }
     public function disciplines()
     {
-        return $this->hasMany(Discipline::class);
+        return $this->hasMany(Discipline::class, 'created_by');
     }
     public function tasks()
     {

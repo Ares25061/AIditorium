@@ -27,4 +27,8 @@ class Course extends Model
             ->withPivot('role')
             ->withTimestamps();
     }
+    public function disciplines()
+    {
+        return $this->hasMany(Discipline::class);
+    }
 }
