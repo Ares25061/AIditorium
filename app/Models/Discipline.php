@@ -29,4 +29,8 @@ class Discipline extends Model
             $discipline->discipline_number = ($maxDisciplineNumber ?? 0) + 1;
         });
     }
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }

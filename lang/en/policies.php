@@ -11,6 +11,7 @@ return [
         ],
         'update' => [
             'deny' => "You don't have permission to update this course",
+            'not_enrolled' => 'You dont enrolled in this course.',
         ],
         'delete' => [
             'deny' => "You don't have permission to archive this course",
@@ -39,6 +40,10 @@ return [
         'regenerate_invite' => [
             'deny' => "You don't have permission to regenerate invite code",
         ],
+        'get_users' => [
+            'deny' => ' You do not have permission to view users for this course.',
+            'not_enrolled' => 'You dont enrolled in this course.',
+        ]
     ],
     // Discipline policy
     'discipline' => [

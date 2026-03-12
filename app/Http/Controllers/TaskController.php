@@ -123,23 +123,22 @@ class TaskController extends Controller
         return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.task')])], 200);
     }
 
-    public function viewTasks(ViewMineTasksRequest $request)
+    public function viewTasks(Request $request)
     {
         $user = Auth::user();
-        $validated = $request->validated();
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'discipline_id' => 'sometimes|integer|exists:disciplines,id',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+            'sort_by' => 'sometimes|string|in:created_at,title,deadline,status',
+            'sort_direction' => 'required_with:sort_by|in:asc,desc',
+        ]);
         $course = Course::find($validated['course_id']);
         if (empty($course)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
-        $this->authorize('view-mine', [Task::class, $course]);
+        $this->authorize('view-tasks', [Task::class, $course]);
         $query = $user->tasks()->where('course_id', $validated['course_id']);
-        if (isset($validated['discipline_id'])) {
-            $discipline = Discipline::find($validated['discipline_id']);
-            if (empty($discipline)) {
-                return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
-            }
-            $query->where('discipline_id', $validated['discipline_id']);
-        }
         if (isset($validated['sort_by']) && isset($validated['sort_direction'])) {
             $query->orderBy($validated['sort_by'], $validated['sort_direction']);
         } else {

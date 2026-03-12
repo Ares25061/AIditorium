@@ -73,7 +73,7 @@ class TaskPolicy
         }
         return Response::deny(__('policies.task.delete.deny'));
     }
-    public function viewMine(User $user, Course $course)
+    public function viewTasks(User $user, Course $course)
     {
         if ($user->courses()->where('course_id', $course->id)->first())
         {

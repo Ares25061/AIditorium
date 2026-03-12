@@ -274,13 +274,17 @@ class CourseController extends Controller
         $user = Auth::user();
         $courses = $user
             ->courses()
+            ->withCount('disciplines')
             ->paginate($request->per_page ?? 15);
         if ($courses->isEmpty()) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
-        return response()->json(['courses' => $courses]);
+        return response()->json([
+            'courses' => $courses,
+            'total_courses' => $courses->total()
+        ]);
     }
 
 
@@ -349,5 +353,17 @@ class CourseController extends Controller
         $this->authorize('regenerate-invite-code',$course);
         $course->update(['invite_code' => Str::random(6)]);
         return response()->json(['message' => __('messages.invite_code_regenerated'), 'course' => $course], 200);
+    }
+
+    public function getUsers(int $courseId)
+    {
+        $course = Course::withCount('users')->find($courseId);
+        if (is_null($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])]);
+        }
+        $this->authorize('get-users',$course);
+        $users = $course->users;
+        $usersCount = $course->users_count;
+        return response()->json(['users' => $users, 'usersCount' => $usersCount], 200);
     }
 }
