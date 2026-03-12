@@ -63,6 +63,7 @@ return [
         'close' => ['summary' => 'Close course', 'description' => 'Make course closed (no new members).'],
         'reopen' => ['summary' => 'Reopen course', 'description' => 'Make course open for new members.'],
         'regenerateInviteCode' => ['summary' => 'Regenerate invite code', 'description' => 'Generate a new invite code for the course.'],
+        'getUsers' => ['summary' => 'Get list users in course', 'description' => 'Get full list all users in course and count users in course.'],
     ],
     'task' => [
         'index' => ['summary' => 'List tasks', 'description' => 'Get a paginated list of all tasks (for admin).'],
