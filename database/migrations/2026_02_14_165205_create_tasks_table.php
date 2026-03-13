@@ -22,7 +22,7 @@ return new class extends Migration
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
             $table->string('name');
-            $table->string('description')
+            $table->longText('description')
                 ->nullable();
             $table->timestamps();
             $table->integer('scores');
