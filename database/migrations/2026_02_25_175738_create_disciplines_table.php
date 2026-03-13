@@ -22,7 +22,7 @@ return new class extends Migration
                 ->nullable();
             $table->string('slug')
                 ->nullable();
-            $table->string('description')
+            $table->longText('description')
                 ->nullable();
             $table->integer('discipline_number');
             $table->foreignID('created_by')

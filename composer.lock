@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70c6aff431c8251e77863c36e6023db0",
+    "content-hash": "8bb6ddf526852b4d9f64a1b26d837587",
     "packages": [
         {
             "name": "brick/math",
@@ -2869,21 +2869,21 @@
         },
         {
             "name": "opcodesio/log-viewer",
-            "version": "v3.21.1",
+            "version": "v3.23.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/opcodesio/log-viewer.git",
-                "reference": "6dfa99c3a8c5ae128c6b7f2f0a4f026af7ca055c"
+                "reference": "654a6ccd8d4b79268e5b2ea2f510b660b008973d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/opcodesio/log-viewer/zipball/6dfa99c3a8c5ae128c6b7f2f0a4f026af7ca055c",
-                "reference": "6dfa99c3a8c5ae128c6b7f2f0a4f026af7ca055c",
+                "url": "https://api.github.com/repos/opcodesio/log-viewer/zipball/654a6ccd8d4b79268e5b2ea2f510b660b008973d",
+                "reference": "654a6ccd8d4b79268e5b2ea2f510b660b008973d",
                 "shasum": ""
             },
             "require": {
                 "illuminate/contracts": "^8.0|^9.0|^10.0|^11.0|^12.0",
-                "opcodesio/mail-parser": "^0.1.6",
+                "opcodesio/mail-parser": "^0.2.3",
                 "php": "^8.0"
             },
             "conflict": {
@@ -2894,7 +2894,7 @@
                 "itsgoingd/clockwork": "^5.1",
                 "laravel/pint": "^1.0",
                 "nunomaduro/collision": "^7.0|^8.0",
-                "orchestra/testbench": "^7.6|^8.0|^9.0|^10.0",
+                "orchestra/testbench": "^7.6|^8.0|^9.5|^10.0",
                 "pestphp/pest": "^2.0|^3.7",
                 "pestphp/pest-plugin-laravel": "^2.0|^3.1",
                 "spatie/test-time": "^1.3"
@@ -2941,7 +2941,7 @@
             ],
             "support": {
                 "issues": "https://github.com/opcodesio/log-viewer/issues",
-                "source": "https://github.com/opcodesio/log-viewer/tree/v3.21.1"
+                "source": "https://github.com/opcodesio/log-viewer/tree/v3.23.0"
             },
             "funding": [
                 {
@@ -2953,20 +2953,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-10-23T05:12:09+00:00"
+            "time": "2026-02-28T09:52:35+00:00"
         },
         {
             "name": "opcodesio/mail-parser",
-            "version": "v0.1.6",
+            "version": "v0.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/opcodesio/mail-parser.git",
-                "reference": "639ef31cbd146a63416283e75afce152e13233ea"
+                "reference": "6f9544a1e526d5849cf8d96600556b2951893aec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/opcodesio/mail-parser/zipball/639ef31cbd146a63416283e75afce152e13233ea",
-                "reference": "639ef31cbd146a63416283e75afce152e13233ea",
+                "url": "https://api.github.com/repos/opcodesio/mail-parser/zipball/6f9544a1e526d5849cf8d96600556b2951893aec",
+                "reference": "6f9544a1e526d5849cf8d96600556b2951893aec",
                 "shasum": ""
             },
             "require": {
@@ -3004,9 +3004,9 @@
             ],
             "support": {
                 "issues": "https://github.com/opcodesio/mail-parser/issues",
-                "source": "https://github.com/opcodesio/mail-parser/tree/v0.1.6"
+                "source": "https://github.com/opcodesio/mail-parser/tree/v0.2.3"
             },
-            "time": "2023-11-19T08:47:43+00:00"
+            "time": "2026-02-28T09:04:57+00:00"
         },
         {
             "name": "phpoption/phpoption",
