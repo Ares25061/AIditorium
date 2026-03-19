@@ -75,6 +75,20 @@ class TaskController extends Controller
         return response()->json(['task' => $task]);
     }
 
+    public function showByNumber(int $courseId, int $disciplineId, int $number)
+    {
+        $task = Task::where('course_id', $courseId)
+            ->where('discipline_id', $disciplineId)
+            ->where('task_number', $number)
+            ->first();
+        if (is_null($task)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
+        }
+        $course = Course::find($courseId);
+        $this->authorize('view',[Task::class, $course]);
+        return response()->json(['task' => $task]);
+    }
+
 
     public function update(UpdateTaskRequest $request, int $id)
     {

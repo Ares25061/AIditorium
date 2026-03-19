@@ -76,7 +76,7 @@ class CourseController extends Controller
     public function show(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('view',$course);
+        $this->authorize('view', $course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
@@ -85,6 +85,18 @@ class CourseController extends Controller
         return response()->json(['course' => $course]);
     }
 
+    public function showBySlug(string $slug)
+    {
+        $course = Course::where('slug', $slug)
+            ->first();
+        $this->authorize('view', $course);
+        if (is_null($course)) {
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
+        }
+        return response()->json(['course' => $course]);
+    }
 
     public function update(UpdateCourseRequest $request, int $id)
     {

@@ -77,6 +77,18 @@ class DisciplineController extends Controller
         }
         return response()->json(['discipline' => $discipline]);
     }
+    public function showBySlug(int $courseId, string $slug)
+    {
+        $discipline = Discipline::where('course_id', $courseId)
+            ->where('slug', $slug)
+            ->first();
+        if (is_null($discipline)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
+        }
+        $course = Course::find($courseId);
+        $this->authorize('view',[Discipline::class, $course]);
+        return response()->json(['discipline' => $discipline]);
+    }
 
 
     public function update(UpdateDisciplineRequest $request, int $id)
