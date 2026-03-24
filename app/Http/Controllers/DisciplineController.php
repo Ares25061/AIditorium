@@ -77,15 +77,16 @@ class DisciplineController extends Controller
         }
         return response()->json(['discipline' => $discipline]);
     }
-    public function showBySlug(int $courseId, string $slug)
+    public function showBySlug(string $courseIdentifier, string $disciplineIdentifier)
     {
-        $discipline = Discipline::where('course_id', $courseId)
-            ->where('slug', $slug)
-            ->first();
+        $course = $this->resolveCourse($courseIdentifier);
+        if (is_null($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
+        }
+        $discipline = $this->resolveDiscipline($course->id, $disciplineIdentifier);
         if (is_null($discipline)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
-        $course = Course::find($courseId);
         $this->authorize('view',[Discipline::class, $course]);
         return response()->json(['discipline' => $discipline]);
     }
@@ -151,5 +152,25 @@ class DisciplineController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         return response()->json($disciplines);
+    }
+
+    private function resolveCourse(string $courseIdentifier): ?Course
+    {
+        if (ctype_digit($courseIdentifier)) {
+            return Course::find((int) $courseIdentifier);
+        }
+
+        return Course::where('slug', $courseIdentifier)->first();
+    }
+
+    private function resolveDiscipline(int $courseId, string $disciplineIdentifier): ?Discipline
+    {
+        $query = Discipline::where('course_id', $courseId);
+
+        if (ctype_digit($disciplineIdentifier)) {
+            return (clone $query)->where('id', (int) $disciplineIdentifier)->first();
+        }
+
+        return (clone $query)->where('slug', $disciplineIdentifier)->first();
     }
 }
