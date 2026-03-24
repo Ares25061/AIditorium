@@ -159,9 +159,15 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('view-tasks', [Task::class, $course]);
-        $query = $user->tasks()->where('course_id', $validated['course_id']);
+        $query = Task::query()->where('course_id', $validated['course_id']);
+
+        if (isset($validated['discipline_id'])) {
+            $query->where('discipline_id', $validated['discipline_id']);
+        }
+
         if (isset($validated['sort_by']) && isset($validated['sort_direction'])) {
-            $query->orderBy($validated['sort_by'], $validated['sort_direction']);
+            $sortBy = $validated['sort_by'] === 'title' ? 'name' : $validated['sort_by'];
+            $query->orderBy($sortBy, $validated['sort_direction']);
         } else {
             $query->orderBy('created_at', 'desc');
         }
