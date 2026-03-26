@@ -55,28 +55,4 @@ class Grade extends Model
         return $this->belongsTo(User::class, 'graded_by');
     }
 
-    // app/Models/User.php
-
-// Add these methods to your User model:
-
-    public function comments(): HasMany
-    {
-        return $this->hasMany(Comment::class);
-    }
-
-    public function grades(): HasMany
-    {
-        return $this->hasMany(Grade::class, 'user_id');
-    }
-
-    public function gradedGrades(): HasMany
-    {
-        return $this->hasMany(Grade::class, 'graded_by');
-    }
-
-    public function files(): HasMany
-    {
-        return $this->hasMany(File::class);
-    }
-
 }

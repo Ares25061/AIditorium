@@ -33,7 +33,7 @@ return new class extends Migration
 
             $table->boolean('is_edited')
                 ->default(false)
-                ->after('content');
+                ->after('body');
         });
     }
 

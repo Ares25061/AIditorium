@@ -72,5 +72,8 @@ return [
         'update' => ['summary' => 'Update task', 'description' => 'Update task information and optional attachment.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
+        'attachSubmission' => ['summary' => 'Submit work', 'description' => 'Attach a file as submission for a task (student).'],
+        'detachSubmission' => ['summary' => 'Remove submission', 'description' => 'Remove your submission from a task (student).'],
+        'submissions' => ['summary' => 'All submissions', 'description' => 'Get all submissions for a task (teacher only).'],
     ],
 ];

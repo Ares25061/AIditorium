@@ -49,6 +49,9 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::apiResource('/task', TaskController::class);
+    Route::post('/tasks/submit', [TaskController::class, 'attachSubmission']);
+    Route::post('/tasks/unsubmit', [TaskController::class, 'detachSubmission']);
+    Route::post('/tasks/submissions', [TaskController::class, 'submissions']);
 
 
     Route::post('/comments', [CommentController::class, 'courseComments']);
