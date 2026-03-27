@@ -30,16 +30,18 @@ class FileController extends Controller
         ]);
     }
 
-
-    public function courseFiles(Request $request, int $courseId)
+    public function courseFiles(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
-            ], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('viewAnyInCourse', [File::class, $course]);
-        $files = File::where('course_id', $courseId)
+        $files = File::where('course_id', $validated['course_id'])
             ->with(['user' => function($query) {
                 $query->select('id', 'name', 'email');
             }])
@@ -50,30 +52,30 @@ class FileController extends Controller
         ]);
     }
 
-
-    public function studentFiles(Request $request, int $courseId, int $studentId)
+    public function studentFiles(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'student_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
-            ], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('viewStudentFiles', [File::class, $course]);
-        $student = User::find($studentId);
+        $student = User::find($validated['student_id']);
         if (empty($student)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.student')])
-            ], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.student')])], 404);
         }
         $isInCourse = $student->courses()
-            ->where('course_id', $courseId)
+            ->where('course_id', $validated['course_id'])
             ->exists();
         if (empty($isInCourse)) {
-            return response()->json([
-                'error' => __('messages.not_enrolled')
-            ]);
+            return response()->json(['error' => __('messages.not_enrolled')]);
         }
-        $files = File::where('course_id', $courseId)
-            ->where('user_id', $studentId)
+        $files = File::where('course_id', $validated['course_id'])
+            ->where('user_id', $validated['student_id'])
             ->paginate($request->per_page ?? 15);
         return response()->json([
             'course' => $course->only(['id', 'name']),
@@ -82,20 +84,24 @@ class FileController extends Controller
         ]);
     }
 
-    public function downloadStudentFile(int $courseId, int $studentId, int $fileId)
+    public function downloadStudentFile(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'student_id' => 'required|integer|exists:users,id',
+            'file_id' => 'required|integer|exists:files,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (empty($course)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])
-            ], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
-        $file = File::where('id', $fileId)
-            ->where('course_id', $courseId)
-            ->where('user_id', $studentId)
+        $file = File::where('id', $validated['file_id'])
+            ->where('course_id', $validated['course_id'])
+            ->where('user_id', $validated['student_id'])
             ->first();
         if (empty($file)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])
-            ], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $this->authorize('view', $file);
         if (Storage::disk('public')->missing($file->path)) {
@@ -103,7 +109,6 @@ class FileController extends Controller
         }
         return Storage::disk('public')->download($file->path);
     }
-
 
 
     public function store(CreateFileRequest $request)

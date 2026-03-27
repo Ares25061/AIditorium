@@ -49,20 +49,19 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::apiResource('/task', TaskController::class);
-    Route::post('/tasks/submit', [TaskController::class, 'attachSubmission']);
-    Route::post('/tasks/unsubmit', [TaskController::class, 'detachSubmission']);
-    Route::post('/tasks/submissions', [TaskController::class, 'submissions']);
+    Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
+    Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);
+    Route::post('/task/submissions', [TaskController::class, 'submissions']);
 
+    Route::post('/comment/viewCourse', [CommentController::class, 'courseComments']);
+    Route::post('/comment/viewTask', [CommentController::class, 'taskComments']);
+    Route::get('/comment/my', [CommentController::class, 'myComments']);
+    Route::get('/comment/{comment}/replies', [CommentController::class, 'replies']);
+    Route::apiResource('/comment', CommentController::class);
 
-    Route::post('/comments', [CommentController::class, 'courseComments']);
-    Route::post('/comments/task', [CommentController::class, 'taskComments']);
-    Route::get('/comments/my', [CommentController::class, 'myComments']);
-    Route::get('/comments/{comment}/replies', [CommentController::class, 'replies']);
-    Route::apiResource('/comments', CommentController::class);
-
-    Route::post('/grades/course', [GradeController::class, 'courseGrades']);
-    Route::post('/grades/me', [GradeController::class, 'myGrades']);
-    Route::post('/grades/student', [GradeController::class, 'studentGrades']);
-    Route::post('/grades/statistics', [GradeController::class, 'statistics']);
-    Route::apiResource('/grades', GradeController::class);
+    Route::post('/grade/course', [GradeController::class, 'courseGrades']);
+    Route::post('/grade/me', [GradeController::class, 'myGrades']);
+    Route::post('/grade/student', [GradeController::class, 'studentGrades']);
+    Route::post('/grade/statistics', [GradeController::class, 'statistics']);
+    Route::apiResource('/grade', GradeController::class);
 });

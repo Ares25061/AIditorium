@@ -142,16 +142,20 @@ class CommentController extends Controller
         ]);
     }
 
-    public function courseComments(Request $request, int $courseId)
+    public function courseComments(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (!$course) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
         $this->authorize('viewAnyInCourse', [Comment::class, $course]);
 
-        $comments = Comment::where('course_id', $courseId)
+        $comments = Comment::where('course_id', $validated['course_id'])
             ->whereNull('parent_id')
             ->with(['user', 'replies.user'])
             ->paginate($request->per_page ?? 15);
@@ -159,16 +163,20 @@ class CommentController extends Controller
         return response()->json($comments);
     }
 
-    public function taskComments(Request $request, int $taskId)
+    public function taskComments(Request $request)
     {
-        $task = Task::find($taskId);
+        $validated = $request->validate([
+            'task_id' => 'required|integer|exists:tasks,id',
+        ]);
+
+        $task = Task::find($validated['task_id']);
         if (!$task) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
 
         $this->authorize('view', $task);
 
-        $comments = Comment::where('task_id', $taskId)
+        $comments = Comment::where('task_id', $validated['task_id'])
             ->whereNull('parent_id')
             ->with(['user', 'replies.user'])
             ->paginate($request->per_page ?? 15);

@@ -43,7 +43,7 @@ class TaskController extends Controller
         }
         $this->authorize('create', [Task::class, $course]);
         $validated['user_id'] = $user->id;
-        if(isset($validated['attachment'])){
+        if (isset($validated['attachment'])) {
             $path = $request->file('attachment')->store('tasks', 'public');
             $file = File::create([
                 'path' => $path,
@@ -68,7 +68,7 @@ class TaskController extends Controller
         $task = Task::find($id);
         $discipline = Discipline::find($task->discipline_id);
         $course = Course::find($discipline->course_id);
-        $this->authorize('view',[Task::class, $course]);
+        $this->authorize('view', [Task::class, $course]);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -86,7 +86,7 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         $validated = $request->validated();
-        if(isset($validated['attachment'])){
+        if (isset($validated['attachment'])) {
             if (!is_null($task->attachment_id)) {
                 $oldFile = File::find($task->attachment_id);
                 if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
@@ -115,7 +115,7 @@ class TaskController extends Controller
     {
         $task = Task::find($id);
         $course = Course::find($task->course_id);
-        $this->authorize('delete', [Task::class,$course]);
+        $this->authorize('delete', [Task::class, $course]);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -148,18 +148,16 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
-    public function attachSubmission(Request $request, int $taskId)
+    public function attachSubmission(Request $request)
     {
         $user = Auth::user();
         $validated = $request->validate([
+            'task_id' => 'required|integer|exists:tasks,id',
             'file' => 'required|file|max:20480', // 20MB
             'comment' => 'sometimes|string|max:1000',
         ]);
 
-        $task = Task::find($taskId);
-        if (!$task) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
-        }
+        $task = Task::find($validated['task_id']);
 
         $course = Course::find($task->course_id);
         $this->authorize('submit', [Task::class, $course]);
@@ -188,24 +186,22 @@ class TaskController extends Controller
     }
 
 
-    public function detachSubmission(Request $request, int $taskId)
+    public function detachSubmission(Request $request)
     {
         $user = Auth::user();
         $validated = $request->validate([
+            'task_id' => 'required|integer|exists:tasks,id',
             'file_id' => 'required|integer|exists:files,id',
         ]);
 
-        $task = Task::find($taskId);
-        if (!$task) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
-        }
+        $task = Task::find($validated['task_id']);
 
         $file = File::where('id', $validated['file_id'])
-            ->where('task_id', $taskId)
+            ->where('task_id', $validated['task_id'])
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$file) {
+        if (!$task || !$file) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.submission')])], 404);
         }
 
@@ -223,9 +219,15 @@ class TaskController extends Controller
         ]);
     }
 
-    public function submissions(Request $request, int $taskId)
+    public function submissions(Request $request)
     {
-        $task = Task::find($taskId);
+        $validated = $request->validate([
+            'task_id' => 'required|integer|exists:tasks,id',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $task = Task::find($validated['task_id']);
+
         if (!$task) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -233,9 +235,9 @@ class TaskController extends Controller
         $course = Course::find($task->course_id);
         $this->authorize('view-submissions', [Task::class, $course]);
 
-        $submissions = File::where('task_id', $taskId)
+        $submissions = File::where('task_id', $validated['task_id'])
             ->where('type', 'submission')
-            ->with(['user' => function($q) {
+            ->with(['user' => function ($q) {
                 $q->select('id', 'name', 'email');
             }])
             ->paginate($request->per_page ?? 15);

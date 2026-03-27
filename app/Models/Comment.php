@@ -15,7 +15,7 @@ class Comment extends Model
         'discipline_id',
         'file_id',
         'parent_id',
-        'content',
+        'body',
         'is_edited',
     ];
 

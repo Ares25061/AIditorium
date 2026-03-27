@@ -87,7 +87,7 @@ class GradeController extends Controller
 
         $existingGrade = Grade::where('user_id', $validated['user_id'])
             ->where('course_id', $validated['course_id'])
-            ->when(isset($validated['task_id']), function($query) use ($validated) {
+            ->when(isset($validated['task_id']), function ($query) use ($validated) {
                 return $query->where('task_id', $validated['task_id']);
             })
             ->first();
@@ -167,16 +167,20 @@ class GradeController extends Controller
     }
 
 // for teachers
-    public function courseGrades(Request $request, int $courseId)
+    public function courseGrades(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (!$course) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
         $this->authorize('viewAnyInCourse', [Grade::class, $course]);
 
-        $grades = Grade::where('course_id', $courseId)
+        $grades = Grade::where('course_id', $validated['course_id'])
             ->with(['student', 'task', 'discipline', 'grader'])
             ->paginate($request->per_page ?? 15);
 
@@ -184,21 +188,25 @@ class GradeController extends Controller
     }
 
 // for students
-    public function myGrades(Request $request, int $courseId)
+    public function myGrades(Request $request)
     {
         $user = Auth::user();
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
 
         if (!$course) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
-        $isEnrolled = $user->courses()->where('course_id', $courseId)->exists();
+        $isEnrolled = $user->courses()->where('course_id', $validated['course_id'])->exists();
         if (!$isEnrolled) {
             return response()->json(['error' => __('messages.not_enrolled')], 403);
         }
 
-        $grades = Grade::where('course_id', $courseId)
+        $grades = Grade::where('course_id', $validated['course_id'])
             ->where('user_id', $user->id)
             ->with(['task', 'discipline', 'grader'])
             ->paginate($request->per_page ?? 15);
@@ -206,45 +214,52 @@ class GradeController extends Controller
         return response()->json($grades);
     }
 
-
-    public function studentGrades(Request $request, int $courseId, int $studentId)
+    public function studentGrades(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'student_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (!$course) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
-        $student = User::find($studentId);
+        $student = User::find($validated['student_id']);
         if (!$student) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.user')])], 404);
         }
 
-        $isEnrolled = $student->courses()->where('course_id', $courseId)->exists();
+        $isEnrolled = $student->courses()->where('course_id', $validated['course_id'])->exists();
         if (!$isEnrolled) {
             return response()->json(['error' => __('messages.not_enrolled')], 404);
         }
 
         $this->authorize('viewStudentGrades', [Grade::class, $course, $student]);
 
-        $grades = Grade::where('course_id', $courseId)
-            ->where('user_id', $studentId)
+        $grades = Grade::where('course_id', $validated['course_id'])
+            ->where('user_id', $validated['student_id'])
             ->with(['task', 'discipline', 'grader'])
             ->paginate($request->per_page ?? 15);
 
         return response()->json($grades);
     }
 
-
-    public function statistics(int $courseId)
+    public function statistics(Request $request)
     {
-        $course = Course::find($courseId);
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
         if (!$course) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
         $this->authorize('viewStatistics', [Grade::class, $course]);
 
-        $grades = Grade::where('course_id', $courseId);
+        $grades = Grade::where('course_id', $validated['course_id']);
 
         $stats = [
             'total_grades' => $grades->count(),

@@ -46,7 +46,6 @@ return new class extends Migration
             $table->dropColumn('discipline_id');
             $table->dropForeign(['file_id']);
             $table->dropColumn('file_id');
-            $table->renameColumn('content', 'body');
             $table->dropColumn('is_edited');
         });
     }

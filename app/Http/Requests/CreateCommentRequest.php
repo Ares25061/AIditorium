@@ -19,7 +19,7 @@ class CreateCommentRequest extends FormRequest
             'discipline_id' => 'sometimes|nullable|integer|exists:disciplines,id',
             'file_id' => 'sometimes|nullable|integer|exists:files,id',
             'parent_id' => 'sometimes|nullable|integer|exists:comments,id',
-            'content' => 'required|string|min:1|max:5000',
+            'body' => 'required|string|min:1|max:5000',
         ];
     }
 }
