@@ -75,16 +75,23 @@ class TaskController extends Controller
         return response()->json(['task' => $task]);
     }
 
-    public function showByNumber(int $courseId, int $disciplineId, int $number)
+    public function showByNumber(string $courseIdentifier, string $disciplineIdentifier, int $number)
     {
-        $task = Task::where('course_id', $courseId)
-            ->where('discipline_id', $disciplineId)
+        $course = $this->resolveCourse($courseIdentifier);
+        if (is_null($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
+        }
+        $discipline = $this->resolveDiscipline($course->id, $disciplineIdentifier);
+        if (is_null($discipline)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
+        }
+        $task = Task::where('course_id', $course->id)
+            ->where('discipline_id', $discipline->id)
             ->where('task_number', $number)
             ->first();
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
-        $course = Course::find($courseId);
         $this->authorize('view',[Task::class, $course]);
         return response()->json(['task' => $task]);
     }
@@ -152,13 +159,39 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('view-tasks', [Task::class, $course]);
-        $query = $user->tasks()->where('course_id', $validated['course_id']);
+        $query = Task::query()->where('course_id', $validated['course_id']);
+
+        if (isset($validated['discipline_id'])) {
+            $query->where('discipline_id', $validated['discipline_id']);
+        }
+
         if (isset($validated['sort_by']) && isset($validated['sort_direction'])) {
-            $query->orderBy($validated['sort_by'], $validated['sort_direction']);
+            $sortBy = $validated['sort_by'] === 'title' ? 'name' : $validated['sort_by'];
+            $query->orderBy($sortBy, $validated['sort_direction']);
         } else {
             $query->orderBy('created_at', 'desc');
         }
         $tasks = $query->paginate($validated['per_page'] ?? 15);
         return response()->json($tasks);
+    }
+
+    private function resolveCourse(string $courseIdentifier): ?Course
+    {
+        if (ctype_digit($courseIdentifier)) {
+            return Course::find((int) $courseIdentifier);
+        }
+
+        return Course::where('slug', $courseIdentifier)->first();
+    }
+
+    private function resolveDiscipline(int $courseId, string $disciplineIdentifier): ?Discipline
+    {
+        $query = Discipline::where('course_id', $courseId);
+
+        if (ctype_digit($disciplineIdentifier)) {
+            return (clone $query)->where('id', (int) $disciplineIdentifier)->first();
+        }
+
+        return (clone $query)->where('slug', $disciplineIdentifier)->first();
     }
 }
