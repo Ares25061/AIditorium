@@ -241,6 +241,9 @@ class CourseController extends Controller
         {
             return response()->json(['error' => __('messages.course_closed'), 'course'=> $course], 409);
         }
+        if($course->status = 'archived'){
+            return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
+        }
         if ($validated['code'] == $course->invite_code) {
             $user->courses()->syncWithoutDetaching($course->id);
         }

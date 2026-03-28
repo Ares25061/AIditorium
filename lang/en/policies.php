@@ -55,12 +55,15 @@ return [
         ],
         'create' => [
             'deny' => "You don't have permission to create disciplines in this course",
+            'archived' => 'You cannot create a discipline in an archived course.',
         ],
         'update' => [
             'deny' => "You don't have permission to update disciplines in this course",
+            'archived' => 'You cannot update a discipline in an archived course.',
         ],
         'delete' => [
             'deny' => "You don't have permission to delete this discipline in this course",
+            'archived' => 'You cannot delete a discipline in an archived course.',
         ],
     ],
     // file policy
@@ -97,12 +100,15 @@ return [
         ],
         'create' => [
             'deny' => "You don't have permission to create tasks in this course",
+            'archived' => 'You cannot create a task in an archived course.',
         ],
         'update' => [
             'deny' => "You don't have permission to update tasks in this course",
+            'archived' => 'You cannot update a task in an archived course.',
         ],
         'delete' => [
             'deny' => "You don't have permission to delete this task in this course",
+            'archived' => 'You cannot delete a task in an archived course.',
         ],
     ],
     // user policy
