@@ -74,6 +74,6 @@ return [
         'update' => ['summary' => 'Update task', 'description' => 'Update task information and optional attachment.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
-        'showByNumber' => ['summary' => 'Show task taskNumber', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
+        'showByNumber' => ['summary' => 'Show task task number', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
     ],
 ];
