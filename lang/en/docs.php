@@ -46,6 +46,7 @@ return [
         'update' => ['summary' => 'Update discipline', 'description' => 'Update discipline information.'],
         'destroy' => ['summary' => 'Delete discipline', 'description' => 'Remove a discipline from the system.'],
         'viewDisciplines' => ['summary' => 'Course disciplines', 'description' => 'Get disciplines for the specified course.'],
+        'showBySlug' => ['summary' => 'Show discipline slug', 'description' => 'Show disciplines by slug and id or slug course'],
     ],
     'course' => [
         'index' => ['summary' => 'List courses', 'description' => 'Get a paginated list of all courses (for admin).'],
@@ -64,6 +65,7 @@ return [
         'reopen' => ['summary' => 'Reopen course', 'description' => 'Make course open for new members.'],
         'regenerateInviteCode' => ['summary' => 'Regenerate invite code', 'description' => 'Generate a new invite code for the course.'],
         'getUsers' => ['summary' => 'Get list users in course', 'description' => 'Get full list all users in course and count users in course.'],
+        'showBySlug' => ['summary' => 'Show course slug', 'description' => 'Show course by slug.'],
     ],
     'task' => [
         'index' => ['summary' => 'List tasks', 'description' => 'Get a paginated list of all tasks (for admin).'],
@@ -72,5 +74,6 @@ return [
         'update' => ['summary' => 'Update task', 'description' => 'Update task information and optional attachment.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
+        'showByNumber' => ['summary' => 'Show task taskNumber', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
     ],
 ];
