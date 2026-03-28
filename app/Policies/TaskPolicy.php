@@ -33,6 +33,9 @@ class TaskPolicy
         if ($user->hasPermission(TaskPermissions::CREATE)) {
             return Response::allow();
         }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.task.create.archived'));
+        }
         if (empty($user->courses()->where('course_id', $course->id)->first()))
         {
             return Response::deny(__('messages.not_enrolled'));
@@ -48,6 +51,9 @@ class TaskPolicy
         if ($user->hasPermission(TaskPermissions::UPDATE)) {
             return Response::allow();
         }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.task.update.archived'));
+        }
         if (empty($user->courses()->where('course_id', $course->id)->first()))
         {
             return Response::deny(__('messages.not_enrolled'));
@@ -62,6 +68,9 @@ class TaskPolicy
     {
         if ($user->hasPermission(TaskPermissions::DELETE)) {
             return Response::allow();
+        }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.task.delete.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first()))
         {

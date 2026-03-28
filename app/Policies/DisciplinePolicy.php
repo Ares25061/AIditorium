@@ -34,6 +34,9 @@ class DisciplinePolicy
         if ($user->hasPermission(DisciplinePermissions::CREATE)) {
             return Response::allow();
         }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.discipline.create.archived'));
+        }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {
             return Response::deny(__('messages.not_enrolled'));
         }
@@ -48,6 +51,9 @@ class DisciplinePolicy
         if ($user->hasPermission(DisciplinePermissions::UPDATE)) {
             return Response::allow();
         }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.discipline.update.archived'));
+        }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {
             return Response::deny(__('messages.not_enrolled'));
         }
@@ -61,6 +67,9 @@ class DisciplinePolicy
     {
         if ($user->hasPermission(DisciplinePermissions::DELETE)) {
             return Response::allow();
+        }
+        if($course->status = 'archived'){
+            return Response::deny(__('policies.discipline.delete.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {
             return Response::deny(__('messages.not_enrolled'));

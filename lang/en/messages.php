@@ -35,7 +35,7 @@ return [
     'already_enrolled' => 'User is already enrolled in this course',
     'not_enrolled' => 'User is not enrolled in this course',
     'course_closed' => 'Course is closed',
-    'course_archived' => 'Cant leave from an archived course',
+    'course_archived' => 'Cant leave or enter in an archived course',
     'invalid_invite_code' => 'Invalid invite code',
     'file_not_on_server' => 'File does not exist on server',
     'student_not_enrolled' => 'Student is not enrolled in this course',
