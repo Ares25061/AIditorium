@@ -8,6 +8,7 @@ use App\Http\Requests\RemoveUserFromCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\File;
+use App\Support\SlugHelper;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -53,12 +54,20 @@ class CourseController extends Controller
             unset($validated['background_logo']);
         }
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => __("messages.slug_exists")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            else if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            if(is_null($validated['slug'])){
+                unset($validated['slug']);
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                if(Course::where('slug', $validated['slug'])->exists()){
+                    return response()->json(['error' => __("messages.slug_exists")], 409);
+                }
             }
         }
         $course = Course::create([
@@ -128,12 +137,22 @@ class CourseController extends Controller
             unset($validated['background_logo']);
         }
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => __("messages.slug_exists")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            else if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            if(is_null($validated['slug'])){
+                $validated['slug'] = null;
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                if(Course::where('slug', $validated['slug'])
+                    ->where('id', '!=', $id)
+                    ->exists()){
+                    return response()->json(['error' => __("messages.slug_exists")], 409);
+                }
             }
         }
         $course->update([

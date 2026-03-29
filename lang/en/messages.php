@@ -39,7 +39,7 @@ return [
     'invalid_invite_code' => 'Invalid invite code',
     'file_not_on_server' => 'File does not exist on server',
     'student_not_enrolled' => 'Student is not enrolled in this course',
-    'slug_letters' => 'slug needs to contain letters',
+    'slug_letters' => 'slug must contain at least one letter',
     'slug_exists' => 'slug already exists',
     'slug_exists_in_course' => 'slug already exists in this course',
 
