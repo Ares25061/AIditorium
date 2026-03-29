@@ -3,13 +3,19 @@
 namespace App\Providers;
 
 use App\Models\Course;
+use App\Models\Discipline;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\File;
+use App\Models\Comment;
+use App\Models\Grade;
 use App\Policies\CoursePolicy;
+use App\Policies\DisciplinePolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\FilePolicy;
+use App\Policies\CommentPolicy;
+use App\Policies\GradePolicy;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\Operation;
@@ -78,5 +84,8 @@ class AppServiceProvider extends ServiceProvider
         File::class  => FilePolicy::class,
         Course::class => CoursePolicy::class,
         Task::class => TaskPolicy::class,
+        Discipline::class => DisciplinePolicy::class,
+        Grade::class => GradePolicy::class,
+        Comment::class => CommentPolicy::class,
     ];
 }

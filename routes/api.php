@@ -6,6 +6,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\DisciplineController;
 use App\Http\Controllers\UserAvatarController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\GradeController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,9 +28,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::apiResource('/file', FileController::class);
     Route::get('/file/download/{file}', [FileController::class, 'download']);
     Route::get('/course/{courseId}/files', [FileController::class, 'courseFiles']);
-    Route::get('/course/{courseId}/student/{studentId}/files', [FileController::class, 'studentFiles']);
-    Route::get('/course/{courseId}/student/{studentId}/file/{fileId}/download', [FileController::class, 'downloadStudentFile']);
-
+    Route::post('/course/studentFiles', [FileController::class, 'studentFiles']);
+    Route::post('/course/studentFile/download', [FileController::class, 'downloadStudentFile']);
 
     Route::get('/course/viewMine', [CourseController::class, 'viewMine']);
     Route::get('/course/{course}/leave', [CourseController::class, 'leave']);
@@ -50,5 +52,19 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::get('/course/{course}/discipline/{discipline}/task/{number}', [TaskController::class, 'showByNumber']);
     Route::apiResource('/task', TaskController::class);
+    Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
+    Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);
+    Route::post('/task/submissions', [TaskController::class, 'submissions']);
 
+    Route::post('/comment/viewCourse', [CommentController::class, 'courseComments']);
+    Route::post('/comment/viewTask', [CommentController::class, 'taskComments']);
+    Route::get('/comment/my', [CommentController::class, 'myComments']);
+    Route::get('/comment/{comment}/replies', [CommentController::class, 'replies']);
+    Route::apiResource('/comment', CommentController::class);
+
+    Route::post('/grade/course', [GradeController::class, 'courseGrades']);
+    Route::post('/grade/me', [GradeController::class, 'myGrades']);
+    Route::post('/grade/student', [GradeController::class, 'studentGrades']);
+    Route::post('/grade/statistics', [GradeController::class, 'statistics']);
+    Route::apiResource('/grade', GradeController::class);
 });

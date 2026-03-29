@@ -14,11 +14,9 @@ class FilePolicy
 {
     public function viewAny(User $user)
     {
-        if ($user->hasPermission(FilePermissions::VIEW_LIST)) {
-            return Response::allow();
-        }
-        return Response::deny(__('policies.file.view_any.deny'));
+        return Response::allow();
     }
+
     public function view(User $user, File $file)
     {
         if ($user->hasPermission(FilePermissions::VIEW) || $user->id === $file->user_id) {

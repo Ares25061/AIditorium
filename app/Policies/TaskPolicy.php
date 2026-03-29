@@ -91,4 +91,16 @@ class TaskPolicy
         }
         return Response::deny(__('messages.not_enrolled'));
     }
+
+    public function submit(User $user, Course $course)
+    {
+        $userCourse = $user->courses()->where('course_id', $course->id)->first();
+        return $userCourse && $userCourse->pivot->role === 'student';
+    }
+
+    public function viewSubmissions(User $user, Course $course)
+    {
+        $userCourse = $user->courses()->where('course_id', $course->id)->first();
+        return $userCourse && $userCourse->pivot->role === 'teacher';
+    }
 }

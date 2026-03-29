@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
@@ -25,5 +26,10 @@ class Task extends Model
                 ->max('task_number');
             $task->task_number = ($maxTaskNumber ?? 0) + 1;
         });
+    }
+
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(File::class)->where('type', 'submission');
     }
 }
