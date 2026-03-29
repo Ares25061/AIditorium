@@ -17,7 +17,7 @@ class UploadAvatarRequest extends FormRequest
             'avatar' => [
                 'required',
                 'image',
-                'mimes:jpeg,png,jpg,gif,webp',
+                'mimes:jpeg,png,jpg,webp',
                 'max:3072',
                 'dimensions:min_width=100,min_height=100,max_width=2000,max_height=2000',
             ],
