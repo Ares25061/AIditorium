@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
 use App\Enums\DisciplinePermissions;
+use App\Enums\StatusCourseEnum;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -34,7 +35,7 @@ class DisciplinePolicy
         if ($user->hasPermission(DisciplinePermissions::CREATE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.discipline.create.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {
@@ -51,7 +52,7 @@ class DisciplinePolicy
         if ($user->hasPermission(DisciplinePermissions::UPDATE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.discipline.update.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {
@@ -68,7 +69,7 @@ class DisciplinePolicy
         if ($user->hasPermission(DisciplinePermissions::DELETE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.discipline.delete.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first())) {

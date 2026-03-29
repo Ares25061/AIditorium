@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
+use App\Enums\StatusCourseEnum;
 use App\Enums\TaskPermissions;
 use App\Models\Course;
 use App\Models\User;
@@ -33,7 +34,7 @@ class TaskPolicy
         if ($user->hasPermission(TaskPermissions::CREATE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.task.create.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first()))
@@ -51,7 +52,7 @@ class TaskPolicy
         if ($user->hasPermission(TaskPermissions::UPDATE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.task.update.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first()))
@@ -69,7 +70,7 @@ class TaskPolicy
         if ($user->hasPermission(TaskPermissions::DELETE)) {
             return Response::allow();
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return Response::deny(__('policies.task.delete.archived'));
         }
         if (empty($user->courses()->where('course_id', $course->id)->first()))

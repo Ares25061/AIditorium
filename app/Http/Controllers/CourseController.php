@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusCourseEnum;
 use App\Http\Requests\AddUserToCourseRequest;
 use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\RemoveUserFromCourseRequest;
@@ -260,7 +261,7 @@ class CourseController extends Controller
         {
             return response()->json(['error' => __('messages.course_closed'), 'course'=> $course], 409);
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
         }
         if ($validated['code'] == $course->invite_code) {
@@ -337,7 +338,7 @@ class CourseController extends Controller
                 'course_id' => $course->id
             ], 409);
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
         }
         $user->courses()->detach($course->id);
