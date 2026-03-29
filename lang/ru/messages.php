@@ -39,7 +39,7 @@ return [
     'invalid_invite_code' => 'Неверный инвайт-код',
     'file_not_on_server' => 'Файл отсутствует на сервере',
     'student_not_enrolled' => 'Студент не записан на этот курс',
-    'slug_letters' => 'slug должен содержать буквы',
+    'slug_letters' => 'slug должен содержать хотя бы одну букву',
     'slug_exists' => 'slug уже существует',
     'slug_exists_in_course' => 'slug уже существует в этом курсе',
 

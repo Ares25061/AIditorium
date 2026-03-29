@@ -11,6 +11,7 @@ use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
 use App\Models\Discipline;
 use App\Models\File;
+use App\Support\SlugHelper;
 use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -49,14 +50,22 @@ class DisciplineController extends Controller
         $this->authorize('create', [Discipline::class, $course]);
         $validated['created_by'] = $user->id;
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            $existingDiscipline = Discipline::where('slug', $validated['slug'])
-                ->where('course_id', $validated['course_id']);
-            if($existingDiscipline->exists()){
-                return response()->json(['error' => __("messages.slug_exists_in_course")], 409);
+            if(is_null($validated['slug'])){
+                unset($validated['slug']);
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                $existingDiscipline = Discipline::where('slug', $validated['slug'])
+                    ->where('course_id', $validated['course_id']);
+                if($existingDiscipline->exists()){
+                    return response()->json(['error' => __("messages.slug_exists_in_course")], 409);
+                }
             }
         }
         $discipline = Discipline::create([
@@ -102,15 +111,23 @@ class DisciplineController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            $existingDiscipline = Discipline::where('slug', $validated['slug'])
-                ->where('course_id', $discipline->course_id)
-                ->where('id', '!=', $id);
-            if($existingDiscipline->exists()){
-                return response()->json(['error' => __("messages.slug_exists_in_course")], 409);
+            if(is_null($validated['slug'])){
+                $validated['slug'] = null;
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                $existingDiscipline = Discipline::where('slug', $validated['slug'])
+                    ->where('course_id', $discipline->course_id)
+                    ->where('id', '!=', $id);
+                if($existingDiscipline->exists()){
+                    return response()->json(['error' => __("messages.slug_exists_in_course")], 409);
+                }
             }
         }
         $discipline->update([
