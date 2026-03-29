@@ -270,7 +270,8 @@ class TaskController extends Controller
             ->paginate($request->per_page ?? 15);
 
         return response()->json(['submissions' => $submissions]);
-      
+    }
+
     private function resolveCourse(string $courseIdentifier): ?Course
     {
         if (ctype_digit($courseIdentifier)) {
