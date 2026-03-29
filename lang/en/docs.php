@@ -10,6 +10,8 @@ return [
         'file' => 'File',
         'course' => 'Course',
         'task' => 'Task',
+        'comment' => 'Comment',
+        'grade' => 'Grade',
     ],
     'user' => [
         'index' => ['summary' => 'List users', 'description' => 'Get a paginated list of all users (for admin).'],
