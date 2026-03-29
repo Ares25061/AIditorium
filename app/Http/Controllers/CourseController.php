@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusCourseEnum;
 use App\Http\Requests\AddUserToCourseRequest;
 use App\Http\Requests\CreateCourseRequest;
 use App\Http\Requests\RemoveUserFromCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\File;
+use App\Support\SlugHelper;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -53,12 +55,20 @@ class CourseController extends Controller
             unset($validated['background_logo']);
         }
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => __("messages.slug_exists")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            else if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            if(is_null($validated['slug'])){
+                unset($validated['slug']);
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                if(Course::where('slug', $validated['slug'])->exists()){
+                    return response()->json(['error' => __("messages.slug_exists")], 409);
+                }
             }
         }
         $course = Course::create([
@@ -76,7 +86,7 @@ class CourseController extends Controller
     public function show(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('view',$course);
+        $this->authorize('view', $course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
@@ -85,6 +95,18 @@ class CourseController extends Controller
         return response()->json(['course' => $course]);
     }
 
+    public function showBySlug(string $slug)
+    {
+        $course = Course::where('slug', $slug)
+            ->first();
+        $this->authorize('view', $course);
+        if (is_null($course)) {
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.course')])
+            ], 404);
+        }
+        return response()->json(['course' => $course]);
+    }
 
     public function update(UpdateCourseRequest $request, int $id)
     {
@@ -116,12 +138,22 @@ class CourseController extends Controller
             unset($validated['background_logo']);
         }
         if(isset($validated['slug'])){
-            $validated['slug'] = Str::slug($validated['slug']);
-            if(Course::where('slug', $validated['slug'])->exists()){
-                return response()->json(['error' => __("messages.slug_exists")], 409);
+            $validated['slug'] = SlugHelper::normalize($validated['slug']);
+            if($validated['slug'] === ''){
+                $validated['slug'] = null;
             }
-            else if(empty($validated['slug'])){
-                return response()->json(['error' => __("messages.slug_letters")], 409);
+            if(is_null($validated['slug'])){
+                $validated['slug'] = null;
+            }
+            else{
+                if(!SlugHelper::containsLetters($validated['slug'])){
+                    return response()->json(['error' => __("messages.slug_letters")], 409);
+                }
+                if(Course::where('slug', $validated['slug'])
+                    ->where('id', '!=', $id)
+                    ->exists()){
+                    return response()->json(['error' => __("messages.slug_exists")], 409);
+                }
             }
         }
         $course->update([
@@ -229,6 +261,9 @@ class CourseController extends Controller
         {
             return response()->json(['error' => __('messages.course_closed'), 'course'=> $course], 409);
         }
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
+            return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
+        }
         if ($validated['code'] == $course->invite_code) {
             $user->courses()->syncWithoutDetaching($course->id);
         }
@@ -303,7 +338,7 @@ class CourseController extends Controller
                 'course_id' => $course->id
             ], 409);
         }
-        if($course->status = 'archived'){
+        if($course->status === StatusCourseEnum::ARCHIVED->value){
             return response()->json(['message' => __('messages.course_archived'), 'course' => $course], 406);
         }
         $user->courses()->detach($course->id);

@@ -51,6 +51,7 @@ return [
         'update' => ['summary' => 'Обновить дисциплину', 'description' => 'Обновление информации о дисциплине.'],
         'destroy' => ['summary' => 'Удалить дисциплину', 'description' => 'Удаление дисциплины из системы.'],
         'viewDisciplines' => ['summary' => 'Дисциплины курса', 'description' => 'Получение дисциплин выбранного курса.'],
+        'showBySlug' => ['summary' => 'Получить дисциплину slug', 'description' => 'Получить дисциплину по его slug и id или slug курса'],
     ],
 
     'course' => [
@@ -70,6 +71,7 @@ return [
         'reopen' => ['summary' => 'Открыть курс', 'description' => 'Открытие курса для новых участников.'],
         'regenerateInviteCode' => ['summary' => 'Обновить код приглашения', 'description' => 'Генерация нового кода приглашения для курса.'],
         'getUsers' => ['summary' => 'Получить список пользователей в курсе', 'description' => 'Получение полного списка всех участников курса, а также количество участников'],
+        'showBySlug' => ['summary' => 'Получить курс slug', 'description' => 'Получить курс по его slug.'],
     ],
 
     'task' => [
@@ -82,6 +84,7 @@ return [
         'attachSubmission' => ['summary' => 'Загрузить ответ', 'description' => 'Прикрепить файл как ответ к заданию (студент).'],
         'detachSubmission' => ['summary' => 'Убрать ответ', 'description' => 'Удалить ответ к заданию (студент).'],
         'submissions' => ['summary' => 'All submissions', 'description' => 'Получение всех прикрепленных ответов (только учитель).'],
+        'showByNumber' => ['summary' => 'Получить задание по номеру задания', 'description' => 'Получить задание по его номеру, id или slug курса и id или slug дисциплины.'],
     ],
 
     'comment' => [

@@ -37,6 +37,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::patch('/course/{course}/reopen', [CourseController::class, 'reopen']);
     Route::patch('/course/{course}/regenerateInviteCode', [CourseController::class, 'regenerateInviteCode']);
     Route::get("/course/{course}/getUsers", [CourseController::class, 'getUsers']);
+    Route::get("/course/slug/{slug}", [CourseController::class, 'showBySlug']);
     Route::apiResource('/course', CourseController::class);
     Route::delete('/course/archive/{course}', [CourseController::class, 'archive']);
     Route::post('/course/generateCode/{course}', [CourseController::class, 'generateTeacherCodeInvite']);
@@ -45,9 +46,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/course/removeUser/{course}', [CourseController::class, 'removeUser']);
 
     Route::get('/discipline/viewDisciplines', [DisciplineController::class, 'viewDisciplines']);
+    Route::get('/course/{course}/discipline/{slug}', [DisciplineController::class, 'showBySlug']);
     Route::apiResource('/discipline', DisciplineController::class);
 
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
+    Route::get('/course/{course}/discipline/{discipline}/task/{number}', [TaskController::class, 'showByNumber']);
     Route::apiResource('/task', TaskController::class);
     Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
     Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);
