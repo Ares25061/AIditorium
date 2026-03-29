@@ -19,33 +19,25 @@ class FileController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', File::class);
-        $files = File::paginate($request->per_page ?? 15);
+        $user = Auth::user();
+        $files = File::where('user_id', $user->id)
+            ->paginate($request->per_page ?? 15);
+
         if ($files->isEmpty()) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])
-            ],404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
-        return response()->json([
-            'files' => $files
-        ]);
+
+        return response()->json(['files' => $files]);
     }
 
-    public function courseFiles(Request $request)
+    public function courseFiles(Request $request, int $courseId)
     {
-        $validated = $request->validate([
-            'course_id' => 'required|integer|exists:courses,id',
-        ]);
-
-        $course = Course::find($validated['course_id']);
+        $course = Course::find($courseId);
         if (empty($course)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('viewAnyInCourse', [File::class, $course]);
-        $files = File::where('course_id', $validated['course_id'])
-            ->with(['user' => function($query) {
-                $query->select('id', 'name', 'email');
-            }])
-            ->paginate($request->per_page ?? 15);
+        $files = File::where('course_id', $courseId)->paginate($request->per_page ?? 15);
         return response()->json([
             'course' => $course->only(['id', 'name', 'description', 'status']),
             'files' => $files

@@ -125,4 +125,25 @@ return [
             'cannot_change_self' => "You cannot change your own role",
         ],
     ],
+    // comment policy
+    'comment' => [
+        'view' => ['deny' => "You don't have permission to view this comment"],
+        'view_any' => ['deny' => "You don't have permission to view comments list"],
+        'create' => ['not_enrolled' => "You must be enrolled in this course to comment"],
+        'update' => ['deny' => "You don't have permission to update this comment"],
+        'delete' => ['deny' => "You don't have permission to delete this comment"],
+        'view_any_in_course' => ['deny' => "Only teachers can view all comments in this course"],
+    ],
+    // grade policy
+    'grade' => [
+        'view' => ['deny' => "You don't have permission to view this grade"],
+        'view_any' => ['deny' => "You don't have permission to view grades list"],
+        'create' => ['deny' => "Only teachers can create grades"],
+        'update' => ['deny' => "Only teachers can update grades"],
+        'delete' => ['deny' => "You don't have permission to delete this grade"],
+        'view_any_in_course' => ['deny' => "Only teachers can view all grades in this course"],
+        'view_student_grades' => ['deny' => "You cannot view this student's grades"],
+        'view_statistics' => ['deny' => "Only teachers can view grade statistics"],
+    ],
+
 ];
