@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Enums;
 
 enum CoursePermissions : string
 {
@@ -11,6 +11,9 @@ enum CoursePermissions : string
     case HARD_DELETE = 'courses.hard-delete';
     case RESTORE = 'courses.restore';
     case GENERATE_TEACHER_CODE_INVITE = 'courses.generate-teacher-code-invite';
+    case REMOVE_USER = 'courses.remove-user';
+    case CLOSE = 'courses.close';
+
 
     public static function values(): array
     {

@@ -11,30 +11,98 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use function PHPUnit\Framework\isEmpty;
 
 class FileController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
-        $this->authorize('viewAny', File::class);
-        $files = File::paginate($request->per_page ?? 15);
+        $user = Auth::user();
+        $files = File::where('user_id', $user->id)
+            ->paginate($request->per_page ?? 15);
+
         if ($files->isEmpty()) {
-            return response()->json(['error' => 'Files not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
+
+        return response()->json(['files' => $files]);
+    }
+
+    public function courseFiles(Request $request, int $courseId)
+    {
+        $course = Course::find($courseId);
+        if (empty($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
+        }
+        $this->authorize('viewAnyInCourse', [File::class, $course]);
+        $files = File::where('course_id', $courseId)->paginate($request->per_page ?? 15);
         return response()->json([
+            'course' => $course->only(['id', 'name', 'description', 'status']),
             'files' => $files
         ]);
     }
-    /**
-     * Store a newly created resource in storage.
-     */
+
+    public function studentFiles(Request $request)
+    {
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'student_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
+        if (empty($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
+        }
+        $this->authorize('viewStudentFiles', [File::class, $course]);
+        $student = User::find($validated['student_id']);
+        if (empty($student)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.student')])], 404);
+        }
+        $isInCourse = $student->courses()
+            ->where('course_id', $validated['course_id'])
+            ->exists();
+        if (empty($isInCourse)) {
+            return response()->json(['error' => __('messages.not_enrolled')]);
+        }
+        $files = File::where('course_id', $validated['course_id'])
+            ->where('user_id', $validated['student_id'])
+            ->paginate($request->per_page ?? 15);
+        return response()->json([
+            'course' => $course->only(['id', 'name']),
+            'student' => $student->only(['id', 'name', 'email']),
+            'files' => $files
+        ]);
+    }
+
+    public function downloadStudentFile(Request $request)
+    {
+        $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'student_id' => 'required|integer|exists:users,id',
+            'file_id' => 'required|integer|exists:files,id',
+        ]);
+
+        $course = Course::find($validated['course_id']);
+        if (empty($course)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
+        }
+        $file = File::where('id', $validated['file_id'])
+            ->where('course_id', $validated['course_id'])
+            ->where('user_id', $validated['student_id'])
+            ->first();
+        if (empty($file)) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
+        }
+        $this->authorize('view', $file);
+        if (Storage::disk('public')->missing($file->path)) {
+            return response()->json(['error' => __('messages.file_not_on_server')], 404);
+        }
+        return Storage::disk('public')->download($file->path);
+    }
+
+
     public function store(CreateFileRequest $request)
     {
         $user = Auth::user();
@@ -48,31 +116,27 @@ class FileController extends Controller
             'task_id' => $validated['task_id'] ?? null,
             'is_public' => $validated['is_public'] ?? false,
         ]);
-        return response()->json(['message' => 'File created!', 'file' => $file], 200);
+        return response()->json(['message' => __('messages.created', ['item' => __('messages.items.file')]), 'file' => $file], 200);
     }
 
-    /**
-     * Display the specified resource.
-     */
+
     public function show(int $id)
     {
         $file = File::find($id);
         $this->authorize('view',$file);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         return response()->json(['file' => $file]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(UpdateFileRequest $request, int $id)
     {
         $this->authorize('update', File::class);
         $file = File::find($id);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $validated = $request->validated();
         if (!empty($validated['type'])) {
@@ -83,35 +147,33 @@ class FileController extends Controller
         $file->update([
             ...$validated,
         ]);
-        return response()->json(['message' => 'File updated!', 'file' => $file], 200);
+        return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.file')])], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+
     public function destroy(int $id)
     {
         $file = File::find($id);
         $this->authorize('delete',$file);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         if(Storage::exists($file->path)) {
             Storage::delete($file->path);
         }
         $file->delete();
-        return response()->json(['message' => 'File deleted']);
+        return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.file')])]);
     }
 
     public function download(int $id)
     {
         $file = File::find($id);
         if (is_null($file)) {
-            return response()->json(['error' => 'File not found'], 404);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $this->authorize('view', $file);
         if (Storage::missing($file->path)) {
-            return response()->json(['error' => 'File does not exist on server'], 404);
+            return response()->json(['error' => __('messages.file_not_on_server')], 404);
         }
         return Storage::download($file->path);
     }

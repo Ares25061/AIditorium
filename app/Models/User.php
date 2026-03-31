@@ -2,20 +2,20 @@
 
 namespace App\Models;
 
-use App\CoursePermissions;
-use App\FilePermissions;
-use App\RolePermissions;
-use App\UserPermissions;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\CoursePermissions;
+use App\Enums\DisciplinePermissions;
+use App\Enums\FilePermissions;
+use App\Enums\RolePermissions;
+use App\Enums\TaskPermissions;
+use App\Enums\UserPermissions;
+use App\Enums\CommentPermissions;
+use App\Enums\GradePermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
-use App\Roles;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -85,7 +85,17 @@ class User extends Authenticatable implements JWTSubject
     }
     public function courses()
     {
-        return $this->BelongsToMany(Course::class)->withPivot('role');
+        return $this->BelongsToMany(Course::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+    public function disciplines()
+    {
+        return $this->hasMany(Discipline::class, 'created_by');
+    }
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
     }
     public function role()
     {
@@ -97,6 +107,27 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(File::class, 'avatar');
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function grades(): HasMany
+    {
+        return $this->hasMany(Grade::class, 'user_id');
+    }
+
+    public function gradedGrades(): HasMany
+    {
+        return $this->hasMany(Grade::class, 'graded_by');
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(File::class);
+    }
+
+
     public function getAvatarUrlAttribute(): ?string
     {
         if ($this->avatar && $this->avatarFile) {
@@ -105,7 +136,8 @@ class User extends Authenticatable implements JWTSubject
         return null;
     }
 
-    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions $permission): bool
+
+    public function hasPermission(UserPermissions|RolePermissions|FilePermissions|CoursePermissions|TaskPermissions|DisciplinePermissions|CommentPermissions| GradePermissions $permission): bool
     {
         return $this->role->permissions->contains('name', $permission->value);
     }
@@ -114,3 +146,5 @@ class User extends Authenticatable implements JWTSubject
         return $this->role->name;
     }
 }
+
+

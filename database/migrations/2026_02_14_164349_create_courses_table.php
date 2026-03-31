@@ -1,6 +1,6 @@
 <?php
 
-use App\StatusCourseEnum;
+use App\Enums\StatusCourseEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -28,6 +28,10 @@ return new class extends Migration
                 ->nullable();
             $table->string('status')
                 ->default(StatusCourseEnum::ACTIVE->value);
+            $table->boolean('is_closed')
+                ->default(false);
+            $table->string('slug')
+                ->nullable();
             $table->timestamps();
         });
     }

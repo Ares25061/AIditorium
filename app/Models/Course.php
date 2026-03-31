@@ -11,10 +11,11 @@ class Course extends Model
         'name',
         'invite_code',
         'invite_code_teacher',
-        'background_logo',
+        'background_logo_id',
         'description',
         'status',
-
+        'is_closed',
+        'slug',
     ];
 
     protected $casts = [
@@ -22,6 +23,12 @@ class Course extends Model
     ];
     public function users()
     {
-        return $this->belongsToMany(User::class)->withPivot('role');
+        return $this->belongsToMany(User::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+    public function disciplines()
+    {
+        return $this->hasMany(Discipline::class);
     }
 }

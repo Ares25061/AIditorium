@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Roles;
+use App\Enums\Roles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

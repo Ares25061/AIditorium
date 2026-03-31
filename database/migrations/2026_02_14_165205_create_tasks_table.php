@@ -17,16 +17,17 @@ return new class extends Migration
                 ->constrained(table: 'courses')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
+            $table->foreignID('user_id')
+                ->constrained('users')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
             $table->string('name');
-            $table->string('description')
+            $table->longText('description')
                 ->nullable();
             $table->timestamps();
             $table->integer('scores');
             $table->dateTime('deadline')
                 ->nullable();
-            $table->enum('status', ['active', 'closed'])
-                ->default('active');
-
         });
     }
 

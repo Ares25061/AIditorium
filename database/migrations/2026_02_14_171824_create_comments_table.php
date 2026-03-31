@@ -26,6 +26,7 @@ return new class extends Migration
                 ->constrained(table: 'tasks')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
+            $table->longText('body');
             $table->timestamps();
         });
     }

@@ -15,7 +15,6 @@ class File extends Model
        'course_id',
        'task_id',
        'type',
-       'name',
        'is_public',
    ];
 

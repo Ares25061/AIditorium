@@ -1,12 +1,14 @@
 <?php
 
-namespace App;
+namespace App\Enums;
 
-enum RolePermissions : string
+enum FilePermissions : string
 {
-    case UPDATE = 'roles.update';
-    case DELETE = 'roles.delete';
-    case SET = 'roles.set';
+    case VIEW = 'files.view';
+    case VIEW_LIST = 'files.view-list';
+    case UPDATE = 'files.update';
+    case DELETE = 'files.delete';
+
     public static function values(): array
     {
         $values = [];

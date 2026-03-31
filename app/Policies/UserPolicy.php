@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Enums\RolePermissions;
+use App\Enums\UserPermissions;
 use App\Models\User;
-use App\RolePermissions;
-use App\UserPermissions;
 use Illuminate\Auth\Access\Response;
 
 class UserPolicy
@@ -14,7 +14,7 @@ class UserPolicy
         if ($user->hasPermission(UserPermissions::VIEW) || $user->id === $model->id) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to view this user");
+        return Response::deny(__('policies.user.view.deny'));
 
     }
     public function viewList(User $user)
@@ -22,7 +22,7 @@ class UserPolicy
         if ($user->hasPermission(UserPermissions::VIEW_LIST)) {
             return Response::allow();
         }
-        return Response::deny("You don't have permission to view list users");
+        return Response::deny(__('policies.user.view_list.deny'));
     }
     public function update(User $user, User $model)
     {
@@ -30,17 +30,17 @@ class UserPolicy
             return Response::allow();
         }
         if (!$user->hasPermission(UserPermissions::UPDATE)) {
-            return Response::deny("You don't have permission to update users");
+            return Response::deny(__('policies.user.update.deny'));
         }
         return Response::allow();
     }
     public function delete(User $user, User $model)
     {
         if (!$user->hasPermission(UserPermissions::DELETE)) {
-            return Response::deny("You don't have permission to delete users");
+            return Response::deny(__('policies.user.delete.deny'));
         }
         if ($user->id === $model->id) {
-            return Response::deny("You cant delete yourself");
+            return Response::deny(__('policies.user.delete.cannot_delete_self'));
         }
         return Response::allow();
     }
@@ -48,11 +48,11 @@ class UserPolicy
     {
         if (!$user->hasPermission(RolePermissions::SET))
         {
-            return Response::deny("You don't have permission to set role users");
+            return Response::deny(__('policies.user.set_role.deny'));
         }
         if ($user->id === $model->id)
         {
-            return Response::deny("You cant change role yourself");
+            return Response::deny(__('policies.user.set_role.cannot_change_self'));
         }
         return Response::allow();
     }

@@ -2,15 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\CoursePermissions;
-use App\FilePermissions;
+use App\Enums\CommentPermissions;
+use App\Enums\CoursePermissions;
+use App\Enums\DisciplinePermissions;
+use App\Enums\FilePermissions;
+use App\Enums\GradePermissions;
+use App\Enums\RolePermissions;
+use App\Enums\Roles;
+use App\Enums\TaskPermissions;
+use App\Enums\UserPermissions;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use App\Roles;
-use App\UserPermissions;
-use App\RolePermissions;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RolePermissionSeeder extends Seeder
@@ -24,6 +27,10 @@ class RolePermissionSeeder extends Seeder
         $rolePermissions = RolePermissions::values();
         $filePermissions = FilePermissions::values();
         $coursePermissions = CoursePermissions::values();
+        $taskPermissions = TaskPermissions::values();
+        $disciplinePermissions = DisciplinePermissions::values();
+        $gradePermissions = GradePermissions::values();
+        $commentPermissions = CommentPermissions::values();
         $permissions = [];
         foreach ($userPermissions as $userPermission) {
             $permissions[] = Permission::create(['name' => $userPermission]);
@@ -36,6 +43,18 @@ class RolePermissionSeeder extends Seeder
         }
         foreach ($coursePermissions as $coursePermission) {
             $permissions[] = Permission::create(['name' => $coursePermission]);
+        }
+        foreach ($taskPermissions as $taskPermission) {
+            $permissions[] = Permission::create(['name' => $taskPermission]);
+        }
+        foreach ($disciplinePermissions as $disciplinePermission) {
+            $permissions[] = Permission::create(['name' => $disciplinePermission]);
+        }
+        foreach ($gradePermissions as $gradePermission) {
+            $permissions[] = Permission::create(['name' => $gradePermission]);
+        }
+        foreach ($commentPermissions as $commentPermission) {
+            $permissions[] = Permission::create(['name' => $commentPermission]);
         }
         $adminRole = Role::create(['name' => Roles::ADMIN->value]);
         $adminRole->permissions()->sync($permissions);
