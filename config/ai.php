@@ -6,6 +6,9 @@ return [
     'api_key' => env('AI_API_KEY'),
     'model' => env('AI_MODEL', 'openai/gpt-4.1-mini'),
     'timeout' => (int) env('AI_TIMEOUT', 120),
+    'dispatch_mode' => env('AI_DISPATCH_MODE', 'after_response'),
+    'queue_connection' => env('AI_QUEUE_CONNECTION', ''),
+    'queue' => env('AI_QUEUE', ''),
     'execution' => [
         'enabled' => filter_var(env('AI_EXECUTION_ENABLED', true), FILTER_VALIDATE_BOOL),
         'timeout' => (int) env('AI_EXECUTION_TIMEOUT', 15),
