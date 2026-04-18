@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
+use App\Enums\GradePermissions;
 use App\Enums\StatusCourseEnum;
 use App\Enums\TaskPermissions;
 use App\Models\Course;
@@ -102,5 +103,37 @@ class TaskPolicy
     {
         $userCourse = $user->courses()->where('course_id', $course->id)->first();
         return $userCourse && $userCourse->pivot->role === 'teacher';
+    }
+
+    public function manageReviewProfile(User $user, Course $course): bool
+    {
+        if ($user->hasPermission(TaskPermissions::UPDATE)) {
+            return true;
+        }
+
+        $userCourse = $user->courses()->where('course_id', $course->id)->first();
+
+        return (bool) ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value);
+    }
+
+    public function runAiReview(User $user, Course $course): bool
+    {
+        return $this->manageReviewProfile($user, $course);
+    }
+
+    public function viewAiReviews(User $user, Course $course): bool
+    {
+        return $this->manageReviewProfile($user, $course);
+    }
+
+    public function applyAiReviewGrade(User $user, Course $course): bool
+    {
+        if ($user->hasPermission(GradePermissions::UPDATE)) {
+            return true;
+        }
+
+        $userCourse = $user->courses()->where('course_id', $course->id)->first();
+
+        return (bool) ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value);
     }
 }

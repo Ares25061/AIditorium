@@ -79,11 +79,11 @@ class DisciplineController extends Controller
     public function show(int $id)
     {
         $discipline = Discipline::find($id);
-        $course = Course::find($discipline->course_id);
-        $this->authorize('view',[Discipline::class, $course]);
         if (is_null($discipline)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
+        $course = Course::find($discipline->course_id);
+        $this->authorize('view',[Discipline::class, $course]);
         return response()->json(['discipline' => $discipline]);
     }
     public function showBySlug(string $courseIdentifier, string $disciplineIdentifier)
@@ -104,12 +104,12 @@ class DisciplineController extends Controller
     public function update(UpdateDisciplineRequest $request, int $id)
     {
         $discipline = Discipline::find($id);
-        $validated = $request->validated();
-        $course = Course::find($discipline->course_id);
-        $this->authorize('update', [Discipline::class, $course]);
         if (is_null($discipline)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
+        $validated = $request->validated();
+        $course = Course::find($discipline->course_id);
+        $this->authorize('update', [Discipline::class, $course]);
         if(isset($validated['slug'])){
             $validated['slug'] = SlugHelper::normalize($validated['slug']);
             if($validated['slug'] === ''){
@@ -140,11 +140,11 @@ class DisciplineController extends Controller
     public function destroy(int $id)
     {
         $discipline = Discipline::find($id);
-        $course = Course::find($discipline->course_id);
-        $this->authorize('delete', [Discipline::class,$course]);
         if (is_null($discipline)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.discipline')])], 404);
         }
+        $course = Course::find($discipline->course_id);
+        $this->authorize('delete', [Discipline::class,$course]);
         $discipline->delete();
         return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.discipline')])], 200);
     }

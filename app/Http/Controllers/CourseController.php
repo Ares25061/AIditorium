@@ -47,6 +47,10 @@ class CourseController extends Controller
             $path = $request->file('background_logo')->store('backs', 'public');
             $file = File::create([
                 'path' => $path,
+                'original_name' => $request->file('background_logo')->getClientOriginalName(),
+                'mime_type' => $request->file('background_logo')->getClientMimeType(),
+                'extension' => strtolower($request->file('background_logo')->getClientOriginalExtension()),
+                'size_bytes' => $request->file('background_logo')->getSize(),
                 'user_id' => $user->id,
                 'type' => 'background',
                 'is_public' => true,
@@ -86,12 +90,12 @@ class CourseController extends Controller
     public function show(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('view', $course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('view', $course);
         return response()->json(['course' => $course]);
     }
 
@@ -99,12 +103,12 @@ class CourseController extends Controller
     {
         $course = Course::where('slug', $slug)
             ->first();
-        $this->authorize('view', $course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('view', $course);
         return response()->json(['course' => $course]);
     }
 
@@ -112,24 +116,28 @@ class CourseController extends Controller
     {
         $user = Auth::user();
         $course = Course::find($id);
-        $this->authorize('update', $course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('update', $course);
         $validated = $request->validated();
         if(isset($validated['background_logo'])){
             if (!is_null($course->background_logo_id)) {
                 $oldFile = File::find($course->background_logo_id);
-                if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
-                    Storage::delete($oldFile->path);
+                if (!is_null($oldFile) && Storage::disk('public')->exists($oldFile->path)) {
+                    Storage::disk('public')->delete($oldFile->path);
                     $oldFile->delete();
                 }
             }
             $path = $request->file('background_logo')->store('backs', 'public');
             $file = File::create([
                 'path' => $path,
+                'original_name' => $request->file('background_logo')->getClientOriginalName(),
+                'mime_type' => $request->file('background_logo')->getClientMimeType(),
+                'extension' => strtolower($request->file('background_logo')->getClientOriginalExtension()),
+                'size_bytes' => $request->file('background_logo')->getSize(),
                 'user_id' => $user->id,
                 'type' => 'background',
                 'is_public' => true,
@@ -169,13 +177,12 @@ class CourseController extends Controller
     public function archive(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('delete',$course);
-
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('delete',$course);
         $course->update([
             'status' => 'archived',
         ]);
@@ -189,12 +196,12 @@ class CourseController extends Controller
     public function destroy(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('hard-delete',$course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('hard-delete',$course);
         $course->delete();
         return response()->json([
             'message' => __('messages.deleted', ['item' => __('messages.items.course')])
@@ -205,12 +212,12 @@ class CourseController extends Controller
     public function restore(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('restore',$course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('restore',$course);
         $course->update([
             'status' => 'active',
         ]);
@@ -224,12 +231,12 @@ class CourseController extends Controller
     public function generateTeacherCodeInvite(int $id)
     {
         $course = Course::find($id);
-        $this->authorize('generate-teacher-code-invite',$course);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        $this->authorize('generate-teacher-code-invite',$course);
         $course->update(['invite_code_teacher' => Str::random(9)]);
         return response()->json([
             'message' => __('messages.invite_code_generated'),
@@ -284,12 +291,17 @@ class CourseController extends Controller
         $course = Course::find($id);
         $validated = $request->validated();
         $model = User::find($validated['user_id']);
-        $this->authorize('remove-user',[$course, $model]);
         if (is_null($course)) {
             return response()->json([
                 'error' => __('messages.not_found', ['item' => __('messages.items.course')])
             ], 404);
         }
+        if (is_null($model)) {
+            return response()->json([
+                'error' => __('messages.not_found', ['item' => __('messages.items.user')])
+            ], 404);
+        }
+        $this->authorize('remove-user',[$course, $model]);
         if ($model->courses()->where('course_id', $course->id)->doesntExist()) {
             return response()->json([
                 'error' => __('messages.not_enrolled'),
@@ -394,7 +406,7 @@ class CourseController extends Controller
     {
         $course = Course::withCount('users')->find($courseId);
         if (is_null($course)) {
-            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])]);
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('get-users',$course);
         $users = $course->users;

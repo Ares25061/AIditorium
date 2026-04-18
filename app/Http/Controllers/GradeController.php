@@ -259,30 +259,32 @@ class GradeController extends Controller
 
         $this->authorize('viewStatistics', [Grade::class, $course]);
 
-        $grades = Grade::where('course_id', $validated['course_id']);
+        $baseQuery = Grade::where('course_id', $validated['course_id']);
+        $gradesByTask = (clone $baseQuery)
+            ->with('task')
+            ->get()
+            ->groupBy('task_id')
+            ->map(function ($group) {
+                return [
+                    'task_name' => $group->first()?->task?->name ?? 'Unknown',
+                    'count' => $group->count(),
+                    'average' => round($group->avg('grade'), 2),
+                    'min' => $group->min('grade'),
+                    'max' => $group->max('grade'),
+                ];
+            });
 
         $stats = [
-            'total_grades' => $grades->count(),
-            'average_grade' => round($grades->avg('grade'), 2),
-            'min_grade' => $grades->min('grade'),
-            'max_grade' => $grades->max('grade'),
-            'grades_by_task' => $grades->with('task')
-                ->get()
-                ->groupBy('task_id')
-                ->map(function ($group) {
-                    return [
-                        'task_name' => $group->first()->task->title ?? 'Unknown',
-                        'count' => $group->count(),
-                        'average' => round($group->avg('grade'), 2),
-                        'min' => $group->min('grade'),
-                        'max' => $group->max('grade'),
-                    ];
-                }),
+            'total_grades' => (clone $baseQuery)->count(),
+            'average_grade' => round((float) ((clone $baseQuery)->avg('grade') ?? 0), 2),
+            'min_grade' => (clone $baseQuery)->min('grade'),
+            'max_grade' => (clone $baseQuery)->max('grade'),
+            'grades_by_task' => $gradesByTask,
             'grades_distribution' => [
-                'excellent' => $grades->where('grade', '>=', 90)->count(),
-                'good' => $grades->whereBetween('grade', [75, 89])->count(),
-                'satisfactory' => $grades->whereBetween('grade', [60, 74])->count(),
-                'unsatisfactory' => $grades->where('grade', '<', 60)->count(),
+                'excellent' => (clone $baseQuery)->where('grade', '>=', 90)->count(),
+                'good' => (clone $baseQuery)->whereBetween('grade', [75, 89])->count(),
+                'satisfactory' => (clone $baseQuery)->whereBetween('grade', [60, 74])->count(),
+                'unsatisfactory' => (clone $baseQuery)->where('grade', '<', 60)->count(),
             ]
         ];
 

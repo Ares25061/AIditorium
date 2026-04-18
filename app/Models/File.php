@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class File extends Model
 {
@@ -11,6 +12,10 @@ class File extends Model
 
    protected $fillable = [
        'path',
+       'original_name',
+       'mime_type',
+       'extension',
+       'size_bytes',
        'user_id',
        'course_id',
        'task_id',
@@ -20,6 +25,7 @@ class File extends Model
 
    protected $casts = [
        'type' => "string",
+       'size_bytes' => 'integer',
    ];
 
    public function user(): BelongsTo
@@ -45,5 +51,10 @@ class File extends Model
     public function userAvatar(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id', 'avatar');
+    }
+
+    public function aiReviewRuns(): HasMany
+    {
+        return $this->hasMany(AiReviewRun::class);
     }
 }

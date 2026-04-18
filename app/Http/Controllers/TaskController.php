@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateTaskRequest;
-use App\Http\Requests\ShowTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
-use App\Http\Requests\ViewMineTasksRequest;
 use App\Models\Course;
 use App\Models\Discipline;
 use App\Models\File;
 use App\Models\Task;
+use App\Services\FileUploadService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -20,6 +19,11 @@ class TaskController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        private readonly FileUploadService $fileUploadService,
+    ) {
+    }
+
     public function index(Request $request)
     {
         $this->authorize('view-any', Task::class);
@@ -28,10 +32,9 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
         return response()->json([
-            'tasks' => $tasks
+            'tasks' => $tasks,
         ]);
     }
-
 
     public function store(CreateTaskRequest $request)
     {
@@ -44,13 +47,18 @@ class TaskController extends Controller
         $this->authorize('create', [Task::class, $course]);
         $validated['user_id'] = $user->id;
         if (isset($validated['attachment'])) {
-            $path = $request->file('attachment')->store('tasks', 'public');
-            $file = File::create([
-                'path' => $path,
-                'user_id' => $user->id,
-                'type' => 'task',
-                'is_public' => true,
-            ]);
+            $file = $this->fileUploadService->storeUploadedFile(
+                $request->file('attachment'),
+                [
+                    'course_id' => $course->id,
+                    'task_id' => null,
+                    'user_id' => $user->id,
+                    'type' => 'task',
+                    'is_public' => true,
+                ],
+                'tasks',
+                'public',
+            );
             $validated['attachment_id'] = $file->id;
             unset($validated['attachment']);
         }
@@ -62,16 +70,17 @@ class TaskController extends Controller
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
-
     public function show(int $id)
     {
         $task = Task::find($id);
-        $discipline = Discipline::find($task->discipline_id);
-        $course = Course::find($discipline->course_id);
-        $this->authorize('view', [Task::class, $course]);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
+
+        $discipline = Discipline::find($task->discipline_id);
+        $course = Course::find($discipline?->course_id ?? $task->course_id);
+        $this->authorize('view', [Task::class, $course]);
+
         return response()->json(['task' => $task]);
     }
 
@@ -92,36 +101,41 @@ class TaskController extends Controller
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
-        $this->authorize('view',[Task::class, $course]);
+        $this->authorize('view', [Task::class, $course]);
         return response()->json(['task' => $task]);
     }
-
 
     public function update(UpdateTaskRequest $request, int $id)
     {
         $user = Auth::user();
         $task = Task::find($id);
-        $course = Course::find($task->course_id);
-        $this->authorize('update', $course);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
+
+        $course = Course::find($task->course_id);
+        $this->authorize('update', [Task::class, $course]);
         $validated = $request->validated();
         if (isset($validated['attachment'])) {
             if (!is_null($task->attachment_id)) {
                 $oldFile = File::find($task->attachment_id);
-                if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
-                    Storage::delete($oldFile->path);
+                if (!is_null($oldFile) && Storage::disk('public')->exists($oldFile->path)) {
+                    Storage::disk('public')->delete($oldFile->path);
                     $oldFile->delete();
                 }
             }
-            $path = $request->file('attachment')->store('tasks', 'public');
-            $file = File::create([
-                'path' => $path,
-                'user_id' => $user->id,
-                'type' => 'task',
-                'is_public' => true,
-            ]);
+            $file = $this->fileUploadService->storeUploadedFile(
+                $request->file('attachment'),
+                [
+                    'course_id' => $course?->id,
+                    'task_id' => $task->id,
+                    'user_id' => $user->id,
+                    'type' => 'task',
+                    'is_public' => true,
+                ],
+                'tasks',
+                'public',
+            );
             $validated['attachment_id'] = $file->id;
             unset($validated['attachment']);
         }
@@ -131,27 +145,26 @@ class TaskController extends Controller
         return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
 
-
     public function destroy(int $id)
     {
         $task = Task::find($id);
-        $course = Course::find($task->course_id);
-        $this->authorize('delete', [Task::class, $course]);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
+
+        $course = Course::find($task->course_id);
+        $this->authorize('delete', [Task::class, $course]);
         $task->delete();
         return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.task')])], 200);
     }
 
     public function viewTasks(Request $request)
     {
-        $user = Auth::user();
         $validated = $request->validate([
             'course_id' => 'required|integer|exists:courses,id',
             'discipline_id' => 'sometimes|integer|exists:disciplines,id',
             'per_page' => 'sometimes|integer|min:1|max:100',
-            'sort_by' => 'sometimes|string|in:created_at,title,deadline,status',
+            'sort_by' => 'sometimes|string|in:created_at,title,deadline',
             'sort_direction' => 'required_with:sort_by|in:asc,desc',
         ]);
         $course = Course::find($validated['course_id']);
@@ -180,12 +193,11 @@ class TaskController extends Controller
         $user = Auth::user();
         $validated = $request->validate([
             'task_id' => 'required|integer|exists:tasks,id',
-            'file' => 'required|file|max:20480', // 20MB
+            'file' => 'required|file|max:20480',
             'comment' => 'sometimes|string|max:1000',
         ]);
 
         $task = Task::find($validated['task_id']);
-
         $course = Course::find($task->course_id);
         $this->authorize('submit', [Task::class, $course]);
 
@@ -194,24 +206,24 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_enrolled')], 403);
         }
 
-        $path = $request->file('file')->store('submissions', 'public');
-
-        $file = File::create([
-            'path' => $path,
-            'user_id' => $user->id,
-            'course_id' => $course->id,
-            'task_id' => $task->id,
-            'type' => 'submission',
-            'is_public' => false,
-            'name' => $request->file('file')->getClientOriginalName(),
-        ]);
+        $file = $this->fileUploadService->storeUploadedFile(
+            $request->file('file'),
+            [
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'task_id' => $task->id,
+                'type' => 'submission',
+                'is_public' => false,
+            ],
+            'submissions',
+            'public',
+        );
 
         return response()->json([
             'message' => __('messages.submitted', ['item' => __('messages.items.submission')]),
-            'submission' => $file
+            'submission' => $file,
         ], 201);
     }
-
 
     public function detachSubmission(Request $request)
     {
@@ -242,7 +254,7 @@ class TaskController extends Controller
         $file->delete();
 
         return response()->json([
-            'message' => __('messages.removed', ['item' => __('messages.items.submission')])
+            'message' => __('messages.removed', ['item' => __('messages.items.submission')]),
         ]);
     }
 
@@ -264,8 +276,8 @@ class TaskController extends Controller
 
         $submissions = File::where('task_id', $validated['task_id'])
             ->where('type', 'submission')
-            ->with(['user' => function ($q) {
-                $q->select('id', 'name', 'email');
+            ->with(['user' => function ($query) {
+                $query->select('id', 'name', 'email');
             }])
             ->paginate($request->per_page ?? 15);
 
