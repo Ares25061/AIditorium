@@ -13,6 +13,22 @@ use Symfony\Component\Process\Process;
 
 class ServerCriterionEvaluator
 {
+    private const STRUCTURAL_METHOD_KEYWORDS = [
+        'количество методов',
+        'кол-во методов',
+        'количество функций',
+        'кол-во функций',
+        'method count',
+        'methods >',
+        'methods <',
+        'methods >=',
+        'methods <=',
+        'functions >',
+        'functions <',
+        'functions >=',
+        'functions <=',
+    ];
+
     private const COMPILE_KEYWORDS = [
         'compile',
         'compilation',
@@ -23,6 +39,14 @@ class ServerCriterionEvaluator
         'собер',
         'синтакс',
         'линт',
+    ];
+
+    private const REQUIRED_CRUD_METHODS = [
+        'index',
+        'store',
+        'show',
+        'update',
+        'destroy',
     ];
 
     /**
@@ -40,12 +64,12 @@ class ServerCriterionEvaluator
         $unsupportedChecks = [];
 
         foreach ($criteria as $criterion) {
-            if (!$this->isCompilationCriterion($criterion)) {
+            $result = $this->evaluateServerCriterion($file, $criterion);
+            if (!$result instanceof CriterionResult) {
                 $llmCriteria[] = $criterion;
                 continue;
             }
 
-            $result = $this->evaluateCompilationCriterion($file, $criterion);
             $criterionResults[] = $result;
 
             if ($result->status === 'unsupported') {
@@ -58,6 +82,26 @@ class ServerCriterionEvaluator
             'llm_criteria' => $llmCriteria,
             'unsupported_checks' => array_values(array_unique($unsupportedChecks)),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function evaluateServerCriterion(File $file, array $criterion): ?CriterionResult
+    {
+        if ($this->isCompilationCriterion($criterion)) {
+            return $this->evaluateCompilationCriterion($file, $criterion);
+        }
+
+        if ($this->isMethodCountCriterion($criterion)) {
+            return $this->evaluateMethodCountCriterion($file, $criterion);
+        }
+
+        if ($this->isCrudCriterion($criterion)) {
+            return $this->evaluateCrudCriterion($file, $criterion);
+        }
+
+        return null;
     }
 
     /**
@@ -82,6 +126,50 @@ class ServerCriterionEvaluator
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function isMethodCountCriterion(array $criterion): bool
+    {
+        $expectation = $this->resolveMethodCountExpectation($criterion);
+        if ($expectation === null) {
+            return false;
+        }
+
+        $text = $this->normalizeCriterionText($criterion);
+        if (preg_match('/метод|функц|method|function/u', $text) === 1) {
+            return true;
+        }
+
+        foreach (self::STRUCTURAL_METHOD_KEYWORDS as $keyword) {
+            if (str_contains($text, mb_strtolower($keyword, 'UTF-8'))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function isCrudCriterion(array $criterion): bool
+    {
+        $text = $this->normalizeCriterionText($criterion);
+        if (str_contains($text, 'crud')) {
+            return true;
+        }
+
+        $mentionedMethods = 0;
+        foreach (self::REQUIRED_CRUD_METHODS as $method) {
+            if (preg_match('/\b'.preg_quote($method, '/').'\b/u', $text) === 1) {
+                $mentionedMethods++;
+            }
+        }
+
+        return $mentionedMethods >= 3 && preg_match('/метод|method|контроллер|controller/u', $text) === 1;
     }
 
     /**
@@ -114,6 +202,89 @@ class ServerCriterionEvaluator
                 "Проверка компиляции для .{$extension} пока не поддерживается серверным evaluator.",
             ),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function evaluateMethodCountCriterion(File $file, array $criterion): CriterionResult
+    {
+        $expectation = $this->resolveMethodCountExpectation($criterion);
+        if ($expectation === null) {
+            return $this->unsupportedResult($criterion, 'Не удалось определить ожидаемое количество методов из критерия.');
+        }
+
+        $context = $this->loadStructuralFileContext($file);
+        if (is_string($context)) {
+            return $this->unsupportedResult($criterion, $context);
+        }
+
+        $callableNames = $this->extractCallableNames($context['content'], $context['extension']);
+        $count = count($callableNames);
+        $passed = $this->compareNumericExpectation($count, $expectation['operator'], $expectation['threshold']);
+        $evidence = [
+            "function_like_count={$count}; condition {$expectation['operator']} {$expectation['threshold']}.",
+        ];
+
+        if ($passed) {
+            return $this->passedResult(
+                $criterion,
+                $evidence,
+                "Найдено {$count} методов/функций; условие {$expectation['operator']} {$expectation['threshold']} выполнено.",
+            );
+        }
+
+        return $this->failedResult(
+            $criterion,
+            $evidence,
+            "Найдено {$count} методов/функций; условие {$expectation['operator']} {$expectation['threshold']} не выполнено.",
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function evaluateCrudCriterion(File $file, array $criterion): CriterionResult
+    {
+        $context = $this->loadStructuralFileContext($file);
+        if (is_string($context)) {
+            return $this->unsupportedResult($criterion, $context);
+        }
+
+        $callableNames = $this->extractCallableNames($context['content'], $context['extension']);
+        $callableMap = array_fill_keys($callableNames, true);
+        $found = [];
+        $missing = [];
+
+        foreach (self::REQUIRED_CRUD_METHODS as $method) {
+            if (isset($callableMap[$method])) {
+                $found[] = $method;
+            } else {
+                $missing[] = $method;
+            }
+        }
+
+        $evidence = [];
+        if ($found !== []) {
+            $evidence[] = 'Найдены методы: '.implode(', ', $found).'.';
+        }
+        if ($missing !== []) {
+            $evidence[] = 'Отсутствуют методы: '.implode(', ', $missing).'.';
+        }
+
+        if ($missing === []) {
+            return $this->passedResult(
+                $criterion,
+                $evidence !== [] ? $evidence : ['Все базовые CRUD-методы найдены.'],
+                'Все базовые CRUD-методы присутствуют.',
+            );
+        }
+
+        return $this->failedResult(
+            $criterion,
+            $evidence !== [] ? $evidence : ['Не удалось подтвердить наличие базовых CRUD-методов.'],
+            'Не все базовые CRUD-методы найдены в файле.',
+        );
     }
 
     /**
@@ -627,6 +798,141 @@ XML;
         }
 
         return null;
+    }
+
+    private function normalizeCriterionText(array $criterion): string
+    {
+        $texts = [
+            $criterion['label'] ?? '',
+            $criterion['description'] ?? '',
+            $criterion['instructions'] ?? '',
+            ...($criterion['checks'] ?? []),
+        ];
+
+        return mb_strtolower(implode(' ', array_map(static fn ($item) => (string) $item, $texts)), 'UTF-8');
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     * @return array{operator: string, threshold: int}|null
+     */
+    private function resolveMethodCountExpectation(array $criterion): ?array
+    {
+        $text = $this->normalizeCriterionText($criterion);
+
+        $symbolicPatterns = [
+            '/(?:methods?|functions?|методов|функций)[^\d<>]=*\s*(>=|<=|>|<|=)\s*(\d+)/u',
+            '/(>=|<=|>|<|=)\s*(\d+)/u',
+        ];
+
+        foreach ($symbolicPatterns as $pattern) {
+            if (preg_match($pattern, $text, $matches) === 1) {
+                return [
+                    'operator' => $matches[1],
+                    'threshold' => (int) $matches[2],
+                ];
+            }
+        }
+
+        $verbalPatterns = [
+            '/(?:не\s+меньше|at\s+least)\s+(\d+)/u' => '>=',
+            '/(?:не\s+больше|at\s+most)\s+(\d+)/u' => '<=',
+            '/(?:больше|more\s+than)\s+(\d+)/u' => '>',
+            '/(?:меньше|less\s+than)\s+(\d+)/u' => '<',
+            '/(?:ровно|exactly)\s+(\d+)/u' => '=',
+        ];
+
+        foreach ($verbalPatterns as $pattern => $operator) {
+            if (preg_match($pattern, $text, $matches) === 1) {
+                return [
+                    'operator' => $operator,
+                    'threshold' => (int) $matches[1],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function compareNumericExpectation(int $value, string $operator, int $threshold): bool
+    {
+        return match ($operator) {
+            '>' => $value > $threshold,
+            '>=' => $value >= $threshold,
+            '<' => $value < $threshold,
+            '<=' => $value <= $threshold,
+            '=' => $value === $threshold,
+            default => false,
+        };
+    }
+
+    /**
+     * @return array{path: string, extension: string, content: string}|string
+     */
+    private function loadStructuralFileContext(File $file): array|string
+    {
+        $disk = Storage::disk('public');
+        if (!$disk->exists($file->path)) {
+            throw new RuntimeException('Submission file is missing on disk.');
+        }
+
+        $absolutePath = $disk->path($file->path);
+        $extension = strtolower((string) ($file->extension ?: pathinfo($absolutePath, PATHINFO_EXTENSION)));
+
+        if (!in_array($extension, config('ai.code_extensions', []), true)) {
+            return "Серверная структурная проверка для .{$extension} пока не поддерживается.";
+        }
+
+        return [
+            'path' => $absolutePath,
+            'extension' => $extension,
+            'content' => $this->normalizeUtf8((string) LocalFile::get($absolutePath)),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractCallableNames(string $content, string $extension): array
+    {
+        $patterns = match ($extension) {
+            'php' => [
+                '/\bfunction\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(/u',
+            ],
+            'py' => [
+                '/^\s*def\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(/mu',
+            ],
+            'js', 'jsx', 'ts', 'tsx', 'vue' => [
+                '/\bfunction\s+(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\s*\(/u',
+                '/^\s*(?:(?:public|private|protected|static|async|get|set)\s+)*(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\s*\([^;\n{}]*\)\s*\{/mu',
+                '/\b(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/u',
+            ],
+            default => [
+                '/^\s*(?:(?:public|private|protected|internal|static|virtual|override|sealed|abstract|final|inline|constexpr|friend|extern|async|synchronized)\s+)+(?:[A-Za-z_\\\\][A-Za-z0-9_\\\\<>\[\],:&?]*\s+)+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\([^;\n{}]*\)\s*(?:const\s*)?(?:\{|=>)/mu',
+                '/\bfunction\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(/u',
+                '/^\s*def\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(/mu',
+            ],
+        };
+
+        $callables = [];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $content, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === false) {
+                continue;
+            }
+
+            foreach ($matches as $match) {
+                if (!isset($match['name'][0], $match['name'][1])) {
+                    continue;
+                }
+
+                $callables[(int) $match['name'][1]] = mb_strtolower((string) $match['name'][0], 'UTF-8');
+            }
+        }
+
+        ksort($callables);
+
+        return array_values($callables);
     }
 
     private function isIgnorableHtmlParseError(\LibXMLError $error): bool
