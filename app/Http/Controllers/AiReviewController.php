@@ -13,6 +13,7 @@ use App\Models\Task;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use RuntimeException;
 
 class AiReviewController extends Controller
 {
@@ -68,7 +69,7 @@ class AiReviewController extends Controller
             'model' => (string) config('ai.model'),
         ]);
 
-        ProcessAiReviewRunJob::dispatch($reviewRun->id);
+        $this->dispatchReviewRun($reviewRun->id);
 
         return response()->json([
             'message' => __('messages.ai_review_queued'),
@@ -128,5 +129,46 @@ class AiReviewController extends Controller
             'message' => __('messages.ai_review_grade_applied'),
             'grade' => $grade->load(['student', 'grader', 'task', 'discipline', 'file']),
         ]);
+    }
+
+    private function dispatchReviewRun(int $reviewRunId): void
+    {
+        if (app()->runningUnitTests()) {
+            ProcessAiReviewRunJob::dispatchSync($reviewRunId);
+
+            return;
+        }
+
+        $dispatchMode = (string) config('ai.dispatch_mode', 'after_response');
+
+        if ($dispatchMode === 'sync') {
+            ProcessAiReviewRunJob::dispatchSync($reviewRunId);
+
+            return;
+        }
+
+        if ($dispatchMode === 'after_response') {
+            ProcessAiReviewRunJob::dispatchAfterResponse($reviewRunId);
+
+            return;
+        }
+
+        if ($dispatchMode === 'queue') {
+            $dispatch = ProcessAiReviewRunJob::dispatch($reviewRunId);
+            $connection = config('ai.queue_connection');
+            $queue = config('ai.queue');
+
+            if (is_string($connection) && $connection !== '') {
+                $dispatch->onConnection($connection);
+            }
+
+            if (is_string($queue) && $queue !== '') {
+                $dispatch->onQueue($queue);
+            }
+
+            return;
+        }
+
+        throw new RuntimeException("Unsupported AI dispatch mode [{$dispatchMode}].");
     }
 }

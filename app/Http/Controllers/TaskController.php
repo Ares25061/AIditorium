@@ -62,10 +62,13 @@ class TaskController extends Controller
             $validated['attachment_id'] = $file->id;
             unset($validated['attachment']);
         }
+        if (array_key_exists('deadline', $validated)) {
+            $validated['deadline'] = $this->normalizeDeadline($validated['deadline']);
+        }
         $task = Task::create([
             ...$validated,
             'scores' => $request->scores ?? 100,
-            'deadline' => $request->deadline ?? Carbon::now()->addDay(7),
+            'deadline' => $validated['deadline'] ?? $this->normalizeDeadline(Carbon::now()->addDay(7)),
         ]);
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.task')]), 'task' => $task], 200);
     }
@@ -116,6 +119,9 @@ class TaskController extends Controller
         $course = Course::find($task->course_id);
         $this->authorize('update', [Task::class, $course]);
         $validated = $request->validated();
+        if (array_key_exists('deadline', $validated)) {
+            $validated['deadline'] = $this->normalizeDeadline($validated['deadline']);
+        }
         if (isset($validated['attachment'])) {
             if (!is_null($task->attachment_id)) {
                 $oldFile = File::find($task->attachment_id);
@@ -302,5 +308,12 @@ class TaskController extends Controller
         }
 
         return (clone $query)->where('slug', $disciplineIdentifier)->first();
+    }
+
+    private function normalizeDeadline(mixed $deadline): string
+    {
+        return Carbon::parse($deadline)
+            ->setTimezone((string) config('app.timezone', 'UTC'))
+            ->format('Y-m-d H:i:s');
     }
 }

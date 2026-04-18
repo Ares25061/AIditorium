@@ -9,6 +9,7 @@ use App\Models\Grade;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
+use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -117,6 +118,54 @@ class ControllerRegressionTest extends TestCase
         $taskStats = collect($response->json('grades_by_task'))->first();
         $this->assertSame($task->name, $taskStats['task_name']);
         $this->assertSame(4, $taskStats['count']);
+    }
+
+    public function test_task_store_accepts_iso_deadline_with_timezone(): void
+    {
+        ['teacher' => $teacher, 'course' => $course, 'discipline' => $discipline] = $this->createCourseContext();
+
+        $deadline = '2026-04-25T18:39:05.2365802+03:00';
+        $expectedDeadline = Carbon::parse($deadline)
+            ->setTimezone((string) config('app.timezone', 'UTC'))
+            ->format('Y-m-d H:i:s');
+
+        $response = $this->actingAs($teacher, 'api')
+            ->postJson('/api/task', [
+                'course_id' => $course->id,
+                'discipline_id' => $discipline->id,
+                'name' => 'Задание с ISO deadline',
+                'scores' => 100,
+                'deadline' => $deadline,
+            ])
+            ->assertOk();
+
+        $taskId = (int) $response->json('task.id');
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $taskId,
+            'deadline' => $expectedDeadline,
+        ]);
+    }
+
+    public function test_task_update_normalizes_iso_deadline_with_timezone(): void
+    {
+        ['teacher' => $teacher, 'task' => $task] = $this->createCourseContext();
+
+        $deadline = '2026-05-01T08:15:00+03:00';
+        $expectedDeadline = Carbon::parse($deadline)
+            ->setTimezone((string) config('app.timezone', 'UTC'))
+            ->format('Y-m-d H:i:s');
+
+        $this->actingAs($teacher, 'api')
+            ->putJson("/api/task/{$task->id}", [
+                'deadline' => $deadline,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'deadline' => $expectedDeadline,
+        ]);
     }
 
     private function createUser(): User
