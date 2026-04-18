@@ -12,6 +12,7 @@ return [
     'execution' => [
         'enabled' => filter_var(env('AI_EXECUTION_ENABLED', true), FILTER_VALIDATE_BOOL),
         'timeout' => (int) env('AI_EXECUTION_TIMEOUT', 15),
+        'php_binary' => env('AI_PHP_BINARY', ''),
     ],
     'max_extracted_chars' => (int) env('AI_MAX_EXTRACTED_CHARS', 60000),
     'max_excerpt_chars' => (int) env('AI_MAX_EXCERPT_CHARS', 8000),

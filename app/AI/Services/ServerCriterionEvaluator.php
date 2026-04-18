@@ -93,19 +93,16 @@ class ServerCriterionEvaluator
             return $this->unsupportedResult($criterion, 'Серверное выполнение проверок отключено.');
         }
 
-        $absolutePath = Storage::disk('public')->path($file->path);
-        if (!is_file($absolutePath)) {
+        $disk = Storage::disk('public');
+        if (!$disk->exists($file->path)) {
             throw new RuntimeException('Submission file is missing on disk.');
         }
+        $absolutePath = $disk->path($file->path);
 
         $extension = strtolower((string) ($file->extension ?: pathinfo($absolutePath, PATHINFO_EXTENSION)));
 
         return match ($extension) {
-            'php' => $this->runProcessCriterion(
-                $criterion,
-                [PHP_BINARY, '-l', $absolutePath],
-                'PHP lint passed without syntax errors.',
-            ),
+            'php' => $this->runPhpCompilation($criterion, $absolutePath),
             'py' => $this->runPythonCompilation($criterion, $absolutePath),
             'js', 'mjs', 'cjs' => $this->runNodeSyntaxCheck($criterion, $absolutePath),
             'cpp', 'cc', 'cxx', 'hpp', 'hh', 'hxx', 'h' => $this->runCppSyntaxCheck($criterion, $absolutePath, $extension),
@@ -117,6 +114,123 @@ class ServerCriterionEvaluator
                 "Проверка компиляции для .{$extension} пока не поддерживается серверным evaluator.",
             ),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function runPhpCompilation(array $criterion, string $absolutePath): CriterionResult
+    {
+        $commands = $this->resolvePhpLintCommands($absolutePath);
+        if ($commands === []) {
+            return $this->unsupportedResult($criterion, 'PHP CLI runtime не найден на сервере.');
+        }
+
+        $lastFailure = null;
+        foreach ($commands as $command) {
+            $result = $this->runProcessCriterion($criterion, $command, 'PHP lint passed without syntax errors.');
+            if ($result->status === 'passed') {
+                return $result;
+            }
+
+            $lastFailure = $result;
+        }
+
+        return $lastFailure ?? $this->unsupportedResult($criterion, 'PHP CLI runtime не найден на сервере.');
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function resolvePhpLintCommands(string $absolutePath): array
+    {
+        $commands = [];
+
+        foreach ($this->resolvePhpExecutables() as $binary) {
+            $commands[] = [$binary, '-l', $absolutePath];
+        }
+
+        return $commands;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function resolvePhpExecutables(): array
+    {
+        $executables = [];
+        $configuredBinary = trim((string) config('ai.execution.php_binary', ''));
+
+        if ($configuredBinary !== '' && $this->isCliPhpBinary($configuredBinary)) {
+            $this->appendUniqueExecutable($executables, $configuredBinary);
+        }
+
+        if ($this->isCliPhpBinary(PHP_BINARY)) {
+            $this->appendUniqueExecutable($executables, PHP_BINARY);
+        }
+
+        $candidateNames = array_values(array_unique([
+            'php',
+            'php-cli',
+            ...$this->phpVersionCandidates($configuredBinary),
+            ...$this->phpVersionCandidates(PHP_BINARY),
+        ]));
+
+        foreach ($candidateNames as $candidate) {
+            $resolved = $this->findExecutable([$candidate]);
+            if ($resolved && $this->isCliPhpBinary($resolved)) {
+                $this->appendUniqueExecutable($executables, $resolved);
+            }
+        }
+
+        return $executables;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function phpVersionCandidates(string $binary): array
+    {
+        if ($binary === '') {
+            return [];
+        }
+
+        $basename = strtolower(basename(str_replace('\\', '/', $binary)));
+        if (preg_match('/php(?:-fpm)?[^\d]*(\d+(?:\.\d+)?)/', $basename, $matches) !== 1) {
+            return [];
+        }
+
+        $version = $matches[1];
+        $normalized = str_replace('.', '', $version);
+
+        return array_values(array_unique([
+            'php'.$version,
+            'php'.$normalized,
+        ]));
+    }
+
+    private function isCliPhpBinary(string $binary): bool
+    {
+        $basename = strtolower(basename(str_replace('\\', '/', trim($binary))));
+        if ($basename === '') {
+            return false;
+        }
+
+        if (!str_contains($basename, 'php')) {
+            return false;
+        }
+
+        return !str_contains($basename, 'fpm');
+    }
+
+    /**
+     * @param array<int, string> $executables
+     */
+    private function appendUniqueExecutable(array &$executables, string $binary): void
+    {
+        if (!in_array($binary, $executables, true)) {
+            $executables[] = $binary;
+        }
     }
 
     /**
@@ -319,7 +433,7 @@ class ServerCriterionEvaluator
      * @param array<string, mixed> $criterion
      * @param array<int, string> $command
      */
-    private function runProcessCriterion(array $criterion, array $command, string $successEvidence): CriterionResult
+    protected function runProcessCriterion(array $criterion, array $command, string $successEvidence): CriterionResult
     {
         $process = new Process($command);
         $process->setTimeout((int) config('ai.execution.timeout', 15));
@@ -393,7 +507,7 @@ class ServerCriterionEvaluator
         );
     }
 
-    private function findExecutable(array $candidates): ?string
+    protected function findExecutable(array $candidates): ?string
     {
         $finder = new ExecutableFinder();
 

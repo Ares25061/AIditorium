@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\AI\Services\ServerCriterionEvaluator;
 use App\Models\File;
 use Illuminate\Support\Facades\Storage;
+use ReflectionClass;
 use Tests\TestCase;
 
 class ServerCriterionEvaluatorTest extends TestCase
@@ -14,6 +15,7 @@ class ServerCriterionEvaluatorTest extends TestCase
         parent::setUp();
 
         Storage::fake('public');
+        config()->set('ai.execution.php_binary', '');
     }
 
     public function test_runs_php_compile_check_on_server_and_keeps_other_criteria_for_llm(): void
@@ -51,6 +53,18 @@ class ServerCriterionEvaluatorTest extends TestCase
         $this->assertSame('passed', $result['criterion_results'][0]->status);
         $this->assertSame('server', $result['criterion_results'][0]->source);
         $this->assertSame('logic', $result['llm_criteria'][0]['id']);
+    }
+
+    public function test_php_version_candidates_are_derived_from_php_fpm_binary_name(): void
+    {
+        $evaluator = app(ServerCriterionEvaluator::class);
+        $reflection = new ReflectionClass($evaluator);
+        $method = $reflection->getMethod('phpVersionCandidates');
+        $method->setAccessible(true);
+
+        $candidates = $method->invoke($evaluator, '/usr/sbin/php-fpm8.4');
+
+        $this->assertSame(['php8.4', 'php84'], $candidates);
     }
 
     public function test_validates_html_markup_without_external_runtime(): void
