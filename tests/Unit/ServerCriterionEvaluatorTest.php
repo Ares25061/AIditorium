@@ -67,6 +67,70 @@ class ServerCriterionEvaluatorTest extends TestCase
         $this->assertSame(['php8.4', 'php84'], $candidates);
     }
 
+    public function test_resolves_method_count_and_crud_server_side_for_php_controller(): void
+    {
+        Storage::disk('public')->put('fixtures/controller.php', <<<'PHP'
+<?php
+
+class DemoController
+{
+    public function index() {}
+    public function store() {}
+    public function show() {}
+    public function update() {}
+    public function destroy() {}
+    public function helperOne() {}
+    public function helperTwo() {}
+}
+PHP);
+
+        $file = new File([
+            'path' => 'fixtures/controller.php',
+            'original_name' => 'controller.php',
+            'extension' => 'php',
+        ]);
+
+        $criteria = [
+            [
+                'id' => 'method_count',
+                'label' => 'Количество методов больше 6',
+                'description' => 'Определи количество методов или функций в файле. Критерий проходит, если их больше шести.',
+                'checks' => ['functions > 6'],
+                'weight' => 30,
+            ],
+            [
+                'id' => 'crud',
+                'label' => 'Наличие CRUD методов',
+                'description' => 'Проверь наличие базовых CRUD методов контроллера: index, store, show, update, destroy.',
+                'checks' => ['crud methods', 'index store show update destroy'],
+                'weight' => 30,
+            ],
+            [
+                'id' => 'logic',
+                'label' => 'Логика решения',
+                'description' => 'Проверь основную логику.',
+                'checks' => ['Проанализируй код'],
+                'weight' => 40,
+            ],
+        ];
+
+        $result = app(ServerCriterionEvaluator::class)->evaluate($file, $criteria);
+        $resultsById = [];
+        foreach ($result['criterion_results'] as $criterionResult) {
+            $resultsById[$criterionResult->criterionId] = $criterionResult;
+        }
+
+        $this->assertCount(2, $result['criterion_results']);
+        $this->assertCount(1, $result['llm_criteria']);
+        $this->assertSame('logic', $result['llm_criteria'][0]['id']);
+        $this->assertSame('passed', $resultsById['method_count']->status);
+        $this->assertSame('server', $resultsById['method_count']->source);
+        $this->assertStringContainsString('function_like_count=7', $resultsById['method_count']->evidence[0]);
+        $this->assertSame('passed', $resultsById['crud']->status);
+        $this->assertSame('server', $resultsById['crud']->source);
+        $this->assertStringContainsString('index, store, show, update, destroy', $resultsById['crud']->evidence[0]);
+    }
+
     public function test_validates_html_markup_without_external_runtime(): void
     {
         Storage::disk('public')->put('fixtures/page.html', "<!DOCTYPE html>\n<html><body><main><h1>Привет</h1></main></body></html>\n");
