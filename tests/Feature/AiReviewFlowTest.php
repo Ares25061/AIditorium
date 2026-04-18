@@ -34,20 +34,20 @@ class AiReviewFlowTest extends TestCase
             public function analyze(CompiledReviewPayload $payload): ReviewResult
             {
                 return new ReviewResult(
-                    summary: 'Работа принята, основная логика выполнена корректно.',
-                    recommendedScore: 92,
+                    summary: 'Модель оценила только LLM-критерии.',
+                    recommendedScore: 0,
                     confidence: 0.88,
                     criteriaResults: [
                         new CriterionResult(
                             criterionId: 'criterion_1',
                             label: 'Корректность',
                             passed: true,
-                            score: 92,
+                            score: 80,
                             evidence: ['В коде есть функция и ожидаемый вывод'],
                             feedback: 'Решение соответствует базовым требованиям.',
                         ),
                     ],
-                    unsupportedChecks: ['Скомпилировать проект'],
+                    unsupportedChecks: [],
                     raw: ['provider' => 'fake'],
                 );
             }
@@ -62,17 +62,26 @@ class AiReviewFlowTest extends TestCase
             'enabled' => true,
             'rubric' => [
                 [
+                    'id' => 'criterion_compile',
+                    'label' => 'Компиляция файла',
+                    'description' => 'Проверь синтаксис PHP файла',
+                    'checks' => [
+                        'Скомпилировать файл',
+                    ],
+                    'weight' => 40,
+                ],
+                [
                     'id' => 'criterion_1',
                     'label' => 'Корректность',
                     'description' => 'Проверь основную логику решения',
                     'checks' => [
                         'Проанализируй код',
-                        'Скомпилировать проект',
                     ],
+                    'weight' => 60,
                 ],
             ],
             'custom_prompt' => 'Ответ должен быть на русском языке.',
-            'supported_formats' => ['py', 'zip', 'docx', 'xlsx', 'csv', 'tsv'],
+            'supported_formats' => ['php', 'zip', 'docx', 'xlsx', 'csv', 'tsv'],
         ]);
 
         $profileResponse->assertOk()
@@ -81,12 +90,12 @@ class AiReviewFlowTest extends TestCase
 
         $submissionResponse = $this->actingAs($student, 'api')->post('/api/task/submit', [
             'task_id' => $task->id,
-            'file' => UploadedFile::fake()->createWithContent('solution.py', "def solve():\n    print('привет')\n"),
+            'file' => UploadedFile::fake()->createWithContent('solution.php', "<?php\n\nfunction solve(): void\n{\n    echo 'привет';\n}\n"),
         ]);
 
         $submissionResponse->assertCreated()
-            ->assertJsonPath('submission.original_name', 'solution.py')
-            ->assertJsonPath('submission.extension', 'py');
+            ->assertJsonPath('submission.original_name', 'solution.php')
+            ->assertJsonPath('submission.extension', 'php');
 
         $submissionId = (int) $submissionResponse->json('submission.id');
 
@@ -101,8 +110,11 @@ class AiReviewFlowTest extends TestCase
 
         $review = AiReviewRun::findOrFail($reviewId)->fresh();
         $this->assertSame('completed', $review->status->value);
-        $this->assertSame(92, $review->recommended_score);
-        $this->assertStringContainsString('Работа принята', (string) $review->summary);
+        $this->assertSame(88, $review->recommended_score);
+        $this->assertStringContainsString('Итоговая оценка: 88/100', (string) $review->summary);
+        $this->assertSame('passed', $review->result_json['criteria_results'][0]['status']);
+        $this->assertSame('server', $review->result_json['criteria_results'][0]['source']);
+        $this->assertSame('criterion_compile', $review->result_json['criteria_results'][0]['criterion_id']);
 
         $listResponse = $this->actingAs($teacher, 'api')->getJson("/api/task/{$task->id}/ai-reviews");
         $listResponse->assertOk()
@@ -111,18 +123,18 @@ class AiReviewFlowTest extends TestCase
         $showResponse = $this->actingAs($teacher, 'api')->getJson("/api/ai-review/{$reviewId}");
         $showResponse->assertOk()
             ->assertJsonPath('review.id', $reviewId)
-            ->assertJsonPath('review.recommended_score', 92);
+            ->assertJsonPath('review.recommended_score', 88);
 
         $applyResponse = $this->actingAs($teacher, 'api')->postJson("/api/ai-review/{$reviewId}/apply-grade");
         $applyResponse->assertOk()
             ->assertJsonPath('grade.type', 'AI')
-            ->assertJsonPath('grade.grade', 92);
+            ->assertJsonPath('grade.grade', 88);
 
         $this->assertDatabaseHas('grades', [
             'user_id' => $student->id,
             'task_id' => $task->id,
             'type' => 'AI',
-            'grade' => 92,
+            'grade' => 88,
         ]);
     }
 

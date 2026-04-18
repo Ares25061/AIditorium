@@ -177,9 +177,3 @@ php artisan migrate --seed
 php artisan storage:link
 composer run dev
 ```
-
-## Важно про `CodeAnalyzer`
-
-Папка `CodeAnalyzer` не является частью runtime этого Laravel-проекта.
-
-Это отдельный старый C#-prototype, сохраненный в репозитории как источник идей и исторический reference для модуля проверки. Деплой, хостинг и текущее API AIditorium на него не опираются.

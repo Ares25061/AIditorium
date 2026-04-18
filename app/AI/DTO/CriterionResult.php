@@ -14,6 +14,9 @@ readonly class CriterionResult
         public ?int $score,
         public array $evidence,
         public string $feedback,
+        public ?string $status = null,
+        public string $source = 'model',
+        public ?int $weight = null,
     ) {
     }
 
@@ -26,6 +29,9 @@ readonly class CriterionResult
             score: isset($data['score']) && is_numeric($data['score']) ? max(0, min(100, (int) round((float) $data['score']))) : null,
             evidence: array_values(array_map(static fn ($item) => (string) $item, $data['evidence'] ?? [])),
             feedback: trim((string) ($data['feedback'] ?? '')),
+            status: isset($data['status']) ? trim((string) $data['status']) : null,
+            source: trim((string) ($data['source'] ?? 'model')),
+            weight: isset($data['weight']) && is_numeric($data['weight']) ? (int) $data['weight'] : null,
         );
     }
 
@@ -38,6 +44,9 @@ readonly class CriterionResult
             'score' => $this->score,
             'evidence' => $this->evidence,
             'feedback' => $this->feedback,
+            'status' => $this->status,
+            'source' => $this->source,
+            'weight' => $this->weight,
         ];
     }
 }

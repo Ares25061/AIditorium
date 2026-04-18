@@ -8,6 +8,7 @@ readonly class CompiledReviewPayload
      * @param array<string, mixed> $submission
      * @param array<string, mixed> $artifacts
      * @param array<int, array<string, mixed>> $criteria
+     * @param array<int, array<string, mixed>> $serverResults
      * @param array<int, string> $unsupportedChecks
      */
     public function __construct(
@@ -17,6 +18,7 @@ readonly class CompiledReviewPayload
         public array $submission,
         public array $artifacts,
         public array $criteria,
+        public array $serverResults,
         public array $unsupportedChecks,
         public ?string $customPrompt,
     ) {
@@ -31,6 +33,7 @@ readonly class CompiledReviewPayload
             'submission' => $this->submission,
             'artifacts' => $this->artifacts,
             'criteria' => $this->criteria,
+            'server_results' => $this->serverResults,
             'unsupported_checks' => $this->unsupportedChecks,
             'custom_prompt' => $this->customPrompt,
         ];

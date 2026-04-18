@@ -8,9 +8,8 @@ use App\AI\DTO\StructuredCriterion;
 class CriteriaCompiler
 {
     private const UNSUPPORTED_KEYWORDS = [
-        'compile', 'compilation', 'build', 'run', 'execute', 'execution', 'test',
-        'pytest', 'phpunit', 'npm test', 'docker', 'sandbox', 'компил', 'собер',
-        'запуск', 'выполн', 'тест', 'собрать проект', 'прогнать',
+        'run', 'execute', 'execution', 'test', 'pytest', 'phpunit', 'npm test',
+        'docker', 'sandbox', 'запуск', 'запуст', 'выполн', 'тест', 'прогнать',
     ];
 
     /**

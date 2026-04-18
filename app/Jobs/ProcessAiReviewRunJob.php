@@ -4,9 +4,12 @@ namespace App\Jobs;
 
 use App\AI\Contracts\LLMClientInterface;
 use App\AI\DTO\CompiledReviewPayload;
+use App\AI\DTO\CriterionResult;
 use App\AI\DTO\ReviewProfile;
 use App\AI\DTO\StructuredCriterion;
 use App\AI\Services\CriteriaCompiler;
+use App\AI\Services\ReviewResultAssembler;
+use App\AI\Services\ServerCriterionEvaluator;
 use App\AI\Services\SubmissionExtractor;
 use App\Enums\ReviewRunStatus;
 use App\Models\AiReviewRun;
@@ -26,6 +29,8 @@ class ProcessAiReviewRunJob implements ShouldQueue
     public function handle(
         SubmissionExtractor $extractor,
         CriteriaCompiler $criteriaCompiler,
+        ServerCriterionEvaluator $serverCriterionEvaluator,
+        ReviewResultAssembler $resultAssembler,
         LLMClientInterface $llmClient,
     ): void {
         /** @var AiReviewRun|null $reviewRun */
@@ -65,6 +70,11 @@ class ProcessAiReviewRunJob implements ShouldQueue
             );
 
             $compiled = $criteriaCompiler->compile($reviewProfile);
+            $serverEvaluation = $serverCriterionEvaluator->evaluate($reviewRun->file, $compiled['criteria']);
+            $unsupportedChecks = array_values(array_unique([
+                ...$compiled['unsupported_checks'],
+                ...$serverEvaluation['unsupported_checks'],
+            ]));
 
             $payload = new CompiledReviewPayload(
                 reviewRunId: $reviewRun->id,
@@ -80,8 +90,12 @@ class ProcessAiReviewRunJob implements ShouldQueue
                     'file_extension' => $reviewRun->file?->extension,
                 ],
                 artifacts: $artifacts,
-                criteria: $compiled['criteria'],
-                unsupportedChecks: $compiled['unsupported_checks'],
+                criteria: $serverEvaluation['llm_criteria'],
+                serverResults: array_map(
+                    static fn (CriterionResult $result) => $result->toArray(),
+                    $serverEvaluation['criterion_results'],
+                ),
+                unsupportedChecks: $unsupportedChecks,
                 customPrompt: $profile->custom_prompt,
             );
 
@@ -89,11 +103,25 @@ class ProcessAiReviewRunJob implements ShouldQueue
                 'criteria_snapshot_json' => [
                     'profile_version' => $profile->version,
                     'rubric' => $compiled['criteria'],
-                    'unsupported_checks' => $compiled['unsupported_checks'],
+                    'llm_criteria' => $serverEvaluation['llm_criteria'],
+                    'server_results' => array_map(
+                        static fn (CriterionResult $result) => $result->toArray(),
+                        $serverEvaluation['criterion_results'],
+                    ),
+                    'unsupported_checks' => $unsupportedChecks,
                 ],
             ]);
 
-            $result = $llmClient->analyze($payload);
+            $llmResult = $serverEvaluation['llm_criteria'] !== []
+                ? $llmClient->analyze($payload)
+                : null;
+
+            $result = $resultAssembler->assemble(
+                criteria: $compiled['criteria'],
+                serverResults: $serverEvaluation['criterion_results'],
+                llmResult: $llmResult,
+                unsupportedChecks: $unsupportedChecks,
+            );
 
             $reviewRun->update([
                 'status' => ReviewRunStatus::COMPLETED,

@@ -6,6 +6,10 @@ return [
     'api_key' => env('AI_API_KEY'),
     'model' => env('AI_MODEL', 'openai/gpt-4.1-mini'),
     'timeout' => (int) env('AI_TIMEOUT', 120),
+    'execution' => [
+        'enabled' => filter_var(env('AI_EXECUTION_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'timeout' => (int) env('AI_EXECUTION_TIMEOUT', 15),
+    ],
     'max_extracted_chars' => (int) env('AI_MAX_EXTRACTED_CHARS', 60000),
     'max_excerpt_chars' => (int) env('AI_MAX_EXCERPT_CHARS', 8000),
     'max_files_per_review' => (int) env('AI_MAX_FILES_PER_REVIEW', 50),
@@ -20,19 +24,19 @@ return [
     'text_extensions' => [
         'txt', 'md', 'json', 'xml', 'yml', 'yaml', 'ini', 'env', 'csv', 'tsv',
         'php', 'js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'kt', 'kts',
-        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'h', 'hpp', 'swift', 'sql', 'sh',
-        'ps1', 'html', 'css', 'scss', 'less', 'blade.php',
+        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hh', 'hxx',
+        'swift', 'sql', 'sh', 'ps1', 'html', 'htm', 'css', 'scss', 'less', 'blade.php',
     ],
     'code_extensions' => [
         'php', 'js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'kt', 'kts',
-        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'h', 'hpp', 'swift', 'sql', 'sh',
-        'ps1', 'html', 'css', 'scss', 'less',
+        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hh', 'hxx',
+        'swift', 'sql', 'sh', 'ps1', 'html', 'htm', 'css', 'scss', 'less',
     ],
     'supported_extensions' => [
         'txt', 'md', 'json', 'xml', 'yml', 'yaml', 'ini', 'env',
         'php', 'js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'kt', 'kts',
-        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'h', 'hpp', 'swift', 'sql', 'sh',
-        'ps1', 'html', 'css', 'scss', 'less',
+        'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hh', 'hxx',
+        'swift', 'sql', 'sh', 'ps1', 'html', 'htm', 'css', 'scss', 'less',
         'docx', 'doc', 'xlsx', 'xls', 'csv', 'tsv', 'zip',
     ],
 ];
