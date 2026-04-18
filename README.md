@@ -1,59 +1,185 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AIditorium
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+AIditorium — это backend API-платформа на Laravel для учебных курсов, дисциплин, заданий, сдач, комментариев, оценок и AI-автопроверки работ студентов.
 
-## About Laravel
+Проект ориентирован на работу как серверное API для сайта/клиента: здесь есть JWT-аутентификация, файловые загрузки, курсы и роли в курсе, очереди для фоновых задач и автогенерируемая OpenAPI-документация.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Что умеет проект
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Управление пользователями и ролями
+- Работа с курсами и дисциплинами
+- Создание заданий и прикрепление материалов
+- Загрузка студенческих сдач
+- Комментарии по курсам и заданиям
+- Ручные оценки преподавателя
+- AI-автопроверка сдач с teacher-only критериями проверки
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## AI-автопроверка
 
-## Learning Laravel
+В проекте реализован backend-first модуль AI-проверки:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- преподаватель настраивает профиль AI-проверки для задания;
+- профиль хранит структурированные критерии, поддерживаемые форматы и свободный prompt;
+- преподаватель ставит конкретную сдачу в очередь на проверку;
+- Laravel извлекает содержимое файла, нормализует текст в UTF-8 и отправляет подготовленный payload в абстрактный LLM-service;
+- результат сохраняется как AI-review с отчетом, рекомендованной оценкой и статусом выполнения;
+- итоговая оценка в `grades` применяется только явным teacher action.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Поддерживаемые форматы v1
 
-## Laravel Sponsors
+- Код и текстовые файлы: `php`, `js`, `ts`, `py`, `java`, `cs`, `sql`, `html`, `css`, `json`, `xml`, `yaml`, `md`, `txt` и др.
+- Документы Word: `docx`
+- Таблицы: `xlsx`, `csv`, `tsv`
+- Архивы: `zip`
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Ограничения v1:
 
-### Premium Partners
+- чужой код не выполняется на хостинге;
+- проверки “скомпилировать”, “запустить”, “прогнать тесты” не исполняются и возвращаются как `unsupported_checks`;
+- legacy-форматы `doc` и `xls` принимаются, но без полноценного структурного извлечения.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Технологический стек
 
-## Contributing
+- PHP `8.2+`
+- Laravel `12`
+- MariaDB
+- JWT auth через `tymon/jwt-auth`
+- Очереди Laravel через `database` driver
+- Vite + Tailwind CSS
+- Scramble для OpenAPI/Swagger-like docs
+- OpenRouter как первый production-адаптер LLM
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Структура репозитория
 
-## Code of Conduct
+- `app/` — доменная логика, контроллеры, модели, сервисы, AI-модуль
+- `routes/api.php` — основной API
+- `database/migrations/` — схема БД
+- `lang/` — RU/EN локализация сообщений и описаний API
+- `config/ai.php` — настройки AI-провайдера и лимитов извлечения
+- `CodeAnalyzer/` — старый C#-прототип, нужен как справочный материал и не участвует в runtime/deploy Laravel-приложения
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Локальный запуск
 
-## Security Vulnerabilities
+### 1. Подготовка
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+```
 
-## License
+### 2. Настройка `.env`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Обязательные переменные:
+
+```env
+APP_URL=http://localhost
+
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=Aiditorium
+DB_USERNAME=root
+DB_PASSWORD=
+
+FILESYSTEM_DISK=public
+QUEUE_CONNECTION=database
+
+AI_PROVIDER=openrouter
+AI_BASE_URL=https://openrouter.ai/api/v1
+AI_API_KEY=your_key_here
+AI_MODEL=openai/gpt-4.1-mini
+AI_TIMEOUT=120
+```
+
+Дополнительно можно настраивать лимиты AI-извлечения:
+
+- `AI_MAX_EXTRACTED_CHARS`
+- `AI_MAX_EXCERPT_CHARS`
+- `AI_MAX_FILES_PER_REVIEW`
+- `AI_ZIP_MAX_ENTRIES`
+- `AI_ZIP_MAX_TOTAL_UNCOMPRESSED_BYTES`
+
+### 3. Запуск приложения
+
+Отдельно:
+
+```bash
+php artisan serve
+php artisan queue:listen --tries=1
+npm install
+npm run dev
+```
+
+Или через composer script:
+
+```bash
+composer run dev
+```
+
+## Работа с файлами
+
+Проект использует `public` disk Laravel и ожидает симлинк:
+
+```bash
+php artisan storage:link
+```
+
+Все загружаемые файлы сохраняют метаданные:
+
+- `original_name`
+- `mime_type`
+- `extension`
+- `size_bytes`
+
+Это важно и для обычных загрузок, и для AI-автопроверки.
+
+## API-документация
+
+После запуска документация доступна по адресам:
+
+- UI: [`/docs/api`](http://localhost/docs/api)
+- OpenAPI JSON: [`/api.json`](http://localhost/api.json)
+
+Scramble генерирует описание на основе текущих маршрутов, request validation и переводов из `lang/`.
+
+## Очереди и фоновые задачи
+
+AI-review работает через очередь:
+
+`queued -> extracting -> analyzing -> completed/failed`
+
+Для production окружения нужен запущенный queue worker. Без него AI-проверки не будут завершаться.
+
+## Quick Start (EN)
+
+AIditorium is a Laravel 12 backend API for courses, tasks, submissions, grades, comments, and AI-assisted student work review.
+
+Core stack:
+
+- Laravel 12
+- PHP 8.2+
+- MariaDB
+- JWT auth
+- Database queues
+- Scramble API docs
+- OpenRouter-backed LLM adapter
+
+Quick start:
+
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+composer run dev
+```
+
+## Важно про `CodeAnalyzer`
+
+Папка `CodeAnalyzer` не является частью runtime этого Laravel-проекта.
+
+Это отдельный старый C#-prototype, сохраненный в репозитории как источник идей и исторический reference для модуля проверки. Деплой, хостинг и текущее API AIditorium на него не опираются.

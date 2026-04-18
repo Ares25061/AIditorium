@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateFileRequest;
 use App\Models\Course;
 use App\Models\File;
 use App\Models\User;
+use App\Services\FileUploadService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,10 @@ class FileController extends Controller
 {
     use AuthorizesRequests;
 
+    public function __construct(
+        private readonly FileUploadService $fileUploadService,
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -40,7 +45,7 @@ class FileController extends Controller
         $files = File::where('course_id', $courseId)->paginate($request->per_page ?? 15);
         return response()->json([
             'course' => $course->only(['id', 'name', 'description', 'status']),
-            'files' => $files
+            'files' => $files,
         ]);
     }
 
@@ -72,7 +77,7 @@ class FileController extends Controller
         return response()->json([
             'course' => $course->only(['id', 'name']),
             'student' => $student->only(['id', 'name', 'email']),
-            'files' => $files
+            'files' => $files,
         ]);
     }
 
@@ -99,37 +104,37 @@ class FileController extends Controller
         if (Storage::disk('public')->missing($file->path)) {
             return response()->json(['error' => __('messages.file_not_on_server')], 404);
         }
-        return Storage::disk('public')->download($file->path);
+        return Storage::disk('public')->download($file->path, $file->original_name ?? basename($file->path));
     }
-
 
     public function store(CreateFileRequest $request)
     {
         $user = Auth::user();
         $validated = $request->validated();
-        $path = $validated['file']->store($validated['type'] ?? 'another', 'public');
-        $file = File::create([
-            'path' => $path,
-            'user_id' => $user->id,
-            'type' => $validated['type'] ?? 'another',
-            'course_id' => $validated['course_id'] ?? null,
-            'task_id' => $validated['task_id'] ?? null,
-            'is_public' => $validated['is_public'] ?? false,
-        ]);
+        $file = $this->fileUploadService->storeUploadedFile(
+            $validated['file'],
+            [
+                'user_id' => $user->id,
+                'type' => $validated['type'] ?? 'another',
+                'course_id' => $validated['course_id'] ?? null,
+                'task_id' => $validated['task_id'] ?? null,
+                'is_public' => $validated['is_public'] ?? false,
+            ],
+            $validated['type'] ?? 'another',
+            'public',
+        );
         return response()->json(['message' => __('messages.created', ['item' => __('messages.items.file')]), 'file' => $file], 200);
     }
-
 
     public function show(int $id)
     {
         $file = File::find($id);
-        $this->authorize('view',$file);
         if (is_null($file)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
+        $this->authorize('view', $file);
         return response()->json(['file' => $file]);
     }
-
 
     public function update(UpdateFileRequest $request, int $id)
     {
@@ -140,9 +145,8 @@ class FileController extends Controller
         }
         $validated = $request->validated();
         if (!empty($validated['type'])) {
-            Storage::move($file->path, $validated['type'] . '/' . basename($file->path));
-            $file->path = $validated['type'] . '/' . basename($file->path);
-
+            Storage::disk('public')->move($file->path, $validated['type'].'/'.basename($file->path));
+            $file->path = $validated['type'].'/'.basename($file->path);
         }
         $file->update([
             ...$validated,
@@ -150,16 +154,15 @@ class FileController extends Controller
         return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.file')])], 200);
     }
 
-
     public function destroy(int $id)
     {
         $file = File::find($id);
-        $this->authorize('delete',$file);
         if (is_null($file)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
-        if(Storage::exists($file->path)) {
-            Storage::delete($file->path);
+        $this->authorize('delete', $file);
+        if (Storage::disk('public')->exists($file->path)) {
+            Storage::disk('public')->delete($file->path);
         }
         $file->delete();
         return response()->json(['message' => __('messages.deleted', ['item' => __('messages.items.file')])]);
@@ -172,9 +175,9 @@ class FileController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
         }
         $this->authorize('view', $file);
-        if (Storage::missing($file->path)) {
+        if (Storage::disk('public')->missing($file->path)) {
             return response()->json(['error' => __('messages.file_not_on_server')], 404);
         }
-        return Storage::download($file->path);
+        return Storage::disk('public')->download($file->path, $file->original_name ?? basename($file->path));
     }
 }

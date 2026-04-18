@@ -8,6 +8,8 @@ use App\Http\Controllers\DisciplineController;
 use App\Http\Controllers\UserAvatarController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\AiReviewController;
+use App\Http\Controllers\TaskReviewProfileController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +57,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
     Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);
     Route::post('/task/submissions', [TaskController::class, 'submissions']);
+    Route::get('/task/{task}/review-profile', [TaskReviewProfileController::class, 'show']);
+    Route::put('/task/{task}/review-profile', [TaskReviewProfileController::class, 'update']);
+    Route::post('/task/{task}/submission/{file}/ai-review', [AiReviewController::class, 'queue']);
+    Route::get('/task/{task}/ai-reviews', [AiReviewController::class, 'index']);
+    Route::get('/ai-review/{review}', [AiReviewController::class, 'show']);
+    Route::post('/ai-review/{review}/apply-grade', [AiReviewController::class, 'applyGrade']);
 
     Route::post('/comment/viewCourse', [CommentController::class, 'courseComments']);
     Route::post('/comment/viewTask', [CommentController::class, 'taskComments']);

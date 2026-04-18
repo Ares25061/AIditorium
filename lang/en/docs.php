@@ -12,6 +12,8 @@ return [
         'task' => 'Task',
         'comment' => 'Comment',
         'grade' => 'Grade',
+        'taskreviewprofile' => 'AI Review Profiles',
+        'aireview' => 'AI Review',
     ],
     'user' => [
         'index' => ['summary' => 'List users', 'description' => 'Get a paginated list of all users (for admin).'],
@@ -103,5 +105,17 @@ return [
         'studentGrades' => ['summary' => 'Student grades', 'description' => 'Get specific student grades (teacher only).'],
         'statistics' => ['summary' => 'Grade statistics', 'description' => 'Get grade statistics for a course (teacher only).'],
         'showByNumber' => ['summary' => 'Show task task number', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
+    ],
+
+    'taskreviewprofile' => [
+        'show' => ['summary' => 'Task AI review profile', 'description' => 'Get the current AI review profile for a task.'],
+        'update' => ['summary' => 'Update AI review profile', 'description' => 'Create or update the teacher-only AI review profile for a task.'],
+    ],
+
+    'aireview' => [
+        'queue' => ['summary' => 'Queue AI review', 'description' => 'Queue an AI review run for a specific submission.'],
+        'index' => ['summary' => 'Task AI reviews', 'description' => 'Get all AI review runs for a task.'],
+        'show' => ['summary' => 'Get AI review', 'description' => 'Get detailed information for a single AI review run.'],
+        'applyGrade' => ['summary' => 'Apply AI grade', 'description' => 'Persist the recommended AI score as a grade after explicit teacher confirmation.'],
     ],
 ];
