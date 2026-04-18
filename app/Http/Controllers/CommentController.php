@@ -174,7 +174,8 @@ class CommentController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
 
-        $this->authorize('view', $task);
+        $course = Course::find($task->course_id);
+        $this->authorize('view', [Task::class, $course]);
 
         $comments = Comment::where('task_id', $validated['task_id'])
             ->whereNull('parent_id')

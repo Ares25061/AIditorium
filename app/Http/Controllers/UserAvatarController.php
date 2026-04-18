@@ -28,8 +28,8 @@ class UserAvatarController extends Controller
         // Удаляем старый аватар из File если есть
         if (!is_null($user->avatar)) {
             $oldFile = File::find($user->avatar);  // avatar хранит ID
-            if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
-                Storage::delete($oldFile->path);
+            if (!is_null($oldFile) && Storage::disk('public')->exists($oldFile->path)) {
+                Storage::disk('public')->delete($oldFile->path);
                 $oldFile->delete();
             }
         }
@@ -37,6 +37,10 @@ class UserAvatarController extends Controller
         $path = $request->file('avatar')->store('avatars', 'public');
         $file = File::create([
             'path' => $path,
+            'original_name' => $request->file('avatar')->getClientOriginalName(),
+            'mime_type' => $request->file('avatar')->getClientMimeType(),
+            'extension' => strtolower($request->file('avatar')->getClientOriginalExtension()),
+            'size_bytes' => $request->file('avatar')->getSize(),
             'user_id' => $user->id,
             'type' => 'avatar',
             'is_public' => true,
@@ -65,15 +69,15 @@ class UserAvatarController extends Controller
         // Удаляем из File и storage
         if (!is_null($user->avatar)) {
             $file = File::find($user->avatar);
-            if (!is_null($file) && Storage::exists($file->path)) {
-                Storage::delete($file->path);
+            if (!is_null($file) && Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
                 $file->delete();
             }
         }
         $user->update(['avatar' => null]);
         return response()->json([
             'status' => 'success',
-            'message' => __('messages.not_found', ['item' => __('messages.items.task')]),
+            'message' => __('messages.deleted', ['item' => __('messages.items.avatar')]),
         ]);
     }
 }

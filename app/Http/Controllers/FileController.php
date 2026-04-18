@@ -69,7 +69,7 @@ class FileController extends Controller
             ->where('course_id', $validated['course_id'])
             ->exists();
         if (empty($isInCourse)) {
-            return response()->json(['error' => __('messages.not_enrolled')]);
+            return response()->json(['error' => __('messages.not_enrolled')], 403);
         }
         $files = File::where('course_id', $validated['course_id'])
             ->where('user_id', $validated['student_id'])

@@ -110,8 +110,8 @@ class UserController extends Controller
         $this->authorize('delete',$user);
         if (!is_null($user->avatar)) {
             $oldFile = File::find($user->avatar);
-            if (!is_null($oldFile) && Storage::exists($oldFile->path)) {
-                Storage::delete($oldFile->path);
+            if (!is_null($oldFile) && Storage::disk('public')->exists($oldFile->path)) {
+                Storage::disk('public')->delete($oldFile->path);
                 $oldFile->delete();
             }
         }

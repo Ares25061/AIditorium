@@ -12,6 +12,11 @@ class TaskReviewProfileController extends Controller
 {
     use AuthorizesRequests;
 
+    private function defaultSupportedFormats(): array
+    {
+        return config('ai.supported_extensions', ['docx', 'xlsx', 'csv', 'tsv', 'zip', 'php', 'js', 'ts', 'py', 'java', 'cs']);
+    }
+
     public function show(Task $task)
     {
         $course = Course::find($task->course_id);
@@ -25,7 +30,7 @@ class TaskReviewProfileController extends Controller
                 'enabled' => $profile?->enabled ?? false,
                 'rubric' => $profile?->rubric_json ?? [],
                 'custom_prompt' => $profile?->custom_prompt,
-                'supported_formats' => $profile?->supported_formats_json ?? ['docx', 'xlsx', 'csv', 'tsv', 'zip', 'php', 'js', 'ts', 'py', 'java', 'cs'],
+                'supported_formats' => $profile?->supported_formats_json ?? $this->defaultSupportedFormats(),
                 'version' => $profile?->version ?? 1,
             ],
         ]);
@@ -44,7 +49,7 @@ class TaskReviewProfileController extends Controller
         $profile->enabled = (bool) $validated['enabled'];
         $profile->rubric_json = $validated['rubric'];
         $profile->custom_prompt = $validated['custom_prompt'] ?? null;
-        $profile->supported_formats_json = $validated['supported_formats'] ?? ['docx', 'xlsx', 'csv', 'tsv', 'zip', 'php', 'js', 'ts', 'py', 'java', 'cs'];
+        $profile->supported_formats_json = $validated['supported_formats'] ?? $this->defaultSupportedFormats();
         $profile->version = $profile->exists ? $profile->version + 1 : 1;
         $profile->save();
 

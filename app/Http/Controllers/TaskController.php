@@ -164,7 +164,7 @@ class TaskController extends Controller
             'course_id' => 'required|integer|exists:courses,id',
             'discipline_id' => 'sometimes|integer|exists:disciplines,id',
             'per_page' => 'sometimes|integer|min:1|max:100',
-            'sort_by' => 'sometimes|string|in:created_at,title,deadline,status',
+            'sort_by' => 'sometimes|string|in:created_at,title,deadline',
             'sort_direction' => 'required_with:sort_by|in:asc,desc',
         ]);
         $course = Course::find($validated['course_id']);
