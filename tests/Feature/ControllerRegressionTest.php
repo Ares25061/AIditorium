@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Comment;
 use App\Models\Course;
 use App\Models\Discipline;
+use App\Models\File;
 use App\Models\Grade;
 use App\Models\Role;
 use App\Models\Task;
@@ -12,6 +13,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -166,6 +169,87 @@ class ControllerRegressionTest extends TestCase
             'id' => $task->id,
             'deadline' => $expectedDeadline,
         ]);
+    }
+
+    public function test_task_store_accepts_multiple_attachments(): void
+    {
+        Storage::fake('public');
+
+        ['teacher' => $teacher, 'course' => $course, 'discipline' => $discipline] = $this->createCourseContext();
+
+        $response = $this->actingAs($teacher, 'api')
+            ->post('/api/task', [
+                'course_id' => $course->id,
+                'discipline_id' => $discipline->id,
+                'name' => 'Task with files',
+                'attachments' => [
+                    UploadedFile::fake()->createWithContent('guide.txt', 'guide'),
+                    UploadedFile::fake()->createWithContent('rubric.txt', 'rubric'),
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonCount(2, 'task.attachments');
+
+        $taskId = (int) $response->json('task.id');
+        $attachments = collect($response->json('task.attachments'));
+        $attachmentIds = $attachments->pluck('id')->map(fn ($id) => (int) $id);
+
+        $this->assertSame($attachmentIds->first(), (int) $response->json('task.attachment_id'));
+        $this->assertSame(['guide.txt', 'rubric.txt'], $attachments->pluck('original_name')->all());
+
+        foreach ($attachments as $attachment) {
+            $this->assertDatabaseHas('files', [
+                'id' => $attachment['id'],
+                'course_id' => $course->id,
+                'task_id' => $taskId,
+                'user_id' => $teacher->id,
+                'type' => 'task',
+                'is_public' => true,
+            ]);
+            Storage::disk('public')->assertExists($attachment['path']);
+        }
+    }
+
+    public function test_task_update_adds_and_removes_multiple_attachments(): void
+    {
+        Storage::fake('public');
+
+        ['teacher' => $teacher, 'course' => $course, 'task' => $task] = $this->createCourseContext();
+        Storage::disk('public')->put('tasks/old.txt', 'old');
+        $oldFile = File::create([
+            'path' => 'tasks/old.txt',
+            'original_name' => 'old.txt',
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+            'size_bytes' => 3,
+            'user_id' => $teacher->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'type' => 'task',
+            'is_public' => true,
+        ]);
+        $task->update(['attachment_id' => $oldFile->id]);
+
+        $response = $this->actingAs($teacher, 'api')
+            ->post("/api/task/{$task->id}", [
+                '_method' => 'PUT',
+                'removed_attachment_ids' => [$oldFile->id],
+                'attachments' => [
+                    UploadedFile::fake()->createWithContent('new-one.txt', 'one'),
+                    UploadedFile::fake()->createWithContent('new-two.txt', 'two'),
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonCount(2, 'task.attachments');
+
+        $attachments = collect($response->json('task.attachments'));
+        $attachmentIds = $attachments->pluck('id')->map(fn ($id) => (int) $id);
+
+        $this->assertNotContains($oldFile->id, $attachmentIds->all());
+        $this->assertSame($attachmentIds->first(), (int) $response->json('task.attachment_id'));
+        $this->assertSame(['new-one.txt', 'new-two.txt'], $attachments->pluck('original_name')->all());
+        $this->assertDatabaseMissing('files', ['id' => $oldFile->id]);
+        Storage::disk('public')->assertMissing('tasks/old.txt');
     }
 
     private function createUser(): User

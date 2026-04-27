@@ -19,6 +19,10 @@ class UpdateTaskRequest extends FormRequest
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
             'attachment' => 'sometimes|file',
+            'attachments' => 'sometimes|array',
+            'attachments.*' => 'file',
+            'removed_attachment_ids' => 'sometimes|array',
+            'removed_attachment_ids.*' => 'integer|exists:files,id',
         ];
     }
 }
