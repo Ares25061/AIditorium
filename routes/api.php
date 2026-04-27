@@ -53,6 +53,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::get('/course/{course}/discipline/{discipline}/task/{number}', [TaskController::class, 'showByNumber']);
+    Route::post('/task/{task}/attachments', [TaskController::class, 'uploadAttachments']);
     Route::apiResource('/task', TaskController::class);
     Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
     Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);

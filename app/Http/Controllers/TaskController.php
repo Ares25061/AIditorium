@@ -149,6 +149,30 @@ class TaskController extends Controller
         ], 200);
     }
 
+    public function uploadAttachments(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        $course = Course::find($task->course_id);
+        $this->authorize('update', [Task::class, $course]);
+
+        $request->validate([
+            'files' => 'required_without:attachments|array|min:1',
+            'files.*' => 'file|max:102400',
+            'attachments' => 'required_without:files|array|min:1',
+            'attachments.*' => 'file|max:102400',
+        ]);
+
+        $uploadedAttachments = $this->collectTaskAttachmentUploads($request, ['files', 'attachments']);
+        $this->assertTaskAttachmentsTotalSize($task, $uploadedAttachments);
+        $this->storeTaskAttachments($uploadedAttachments, $course, $task, $user->id);
+        $this->syncPrimaryAttachment($task);
+
+        return response()->json([
+            'message' => __('messages.uploaded', ['item' => __('messages.items.file')]),
+            'task' => $this->loadTaskRelations($task),
+        ], 201);
+    }
+
     public function destroy(int $id)
     {
         $task = Task::find($id);
@@ -320,26 +344,27 @@ class TaskController extends Controller
     /**
      * @return array<int, UploadedFile>
      */
-    private function collectTaskAttachmentUploads(Request $request): array
+    private function collectTaskAttachmentUploads(Request $request, array $fields = ['attachments', 'attachment']): array
     {
-        $attachments = $request->file('attachments', []);
+        $attachments = [];
 
-        if ($attachments instanceof UploadedFile) {
-            $attachments = [$attachments];
+        foreach ($fields as $field) {
+            $fieldFiles = $request->file($field, []);
+
+            if ($fieldFiles instanceof UploadedFile) {
+                $fieldFiles = [$fieldFiles];
+            }
+
+            $attachments = [
+                ...$attachments,
+                ...array_values(array_filter(
+                    is_array($fieldFiles) ? $fieldFiles : [],
+                    fn ($file) => $file instanceof UploadedFile,
+                )),
+            ];
         }
 
-        $attachments = array_values(array_filter(
-            is_array($attachments) ? $attachments : [],
-            fn ($file) => $file instanceof UploadedFile,
-        ));
-
-        if (!empty($attachments)) {
-            return $attachments;
-        }
-
-        $legacyAttachment = $request->file('attachment');
-
-        return $legacyAttachment instanceof UploadedFile ? [$legacyAttachment] : [];
+        return $attachments;
     }
 
     /**
