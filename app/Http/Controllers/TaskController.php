@@ -15,10 +15,13 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
     use AuthorizesRequests;
+
+    private const TASK_ATTACHMENTS_MAX_TOTAL_BYTES = 104857600;
 
     public function __construct(
         private readonly FileUploadService $fileUploadService,
@@ -47,6 +50,7 @@ class TaskController extends Controller
         }
         $this->authorize('create', [Task::class, $course]);
         $uploadedAttachments = $this->collectTaskAttachmentUploads($request);
+        $this->assertTaskAttachmentsTotalSize(null, $uploadedAttachments);
         $validated['user_id'] = $user->id;
         unset($validated['attachment'], $validated['attachments']);
         if (array_key_exists('deadline', $validated)) {
@@ -123,6 +127,8 @@ class TaskController extends Controller
         $uploadedAttachments = $this->collectTaskAttachmentUploads($request);
         $removedAttachmentIds = $validated['removed_attachment_ids'] ?? [];
         unset($validated['attachment'], $validated['attachments'], $validated['removed_attachment_ids']);
+
+        $this->assertTaskAttachmentsTotalSize($task, $uploadedAttachments, $removedAttachmentIds);
 
         if (!empty($removedAttachmentIds)) {
             $this->deleteTaskAttachments($task, $removedAttachmentIds);
@@ -358,6 +364,44 @@ class TaskController extends Controller
     }
 
     /**
+     * @param array<int, UploadedFile> $uploadedAttachments
+     * @param array<int, int|string> $removedAttachmentIds
+     *
+     * @throws ValidationException
+     */
+    private function assertTaskAttachmentsTotalSize(?Task $task, array $uploadedAttachments, array $removedAttachmentIds = []): void
+    {
+        $removedAttachmentIds = array_values(array_unique(array_map('intval', $removedAttachmentIds)));
+        $existingSize = 0;
+
+        if ($task) {
+            $existingSize = (int) File::where(function ($query) use ($task) {
+                $query->where(function ($query) use ($task) {
+                    $query->where('task_id', $task->id)
+                        ->where('type', 'task');
+                });
+
+                if (!is_null($task->attachment_id)) {
+                    $query->orWhere('id', $task->attachment_id);
+                }
+            })
+                ->when(!empty($removedAttachmentIds), fn ($query) => $query->whereNotIn('id', $removedAttachmentIds))
+                ->sum('size_bytes');
+        }
+
+        $uploadedSize = array_sum(array_map(
+            fn (UploadedFile $uploadedFile) => (int) $uploadedFile->getSize(),
+            $uploadedAttachments,
+        ));
+
+        if ($existingSize + $uploadedSize > self::TASK_ATTACHMENTS_MAX_TOTAL_BYTES) {
+            throw ValidationException::withMessages([
+                'attachments' => [__('messages.task_attachments_total_too_large', ['max' => '100 MB'])],
+            ]);
+        }
+    }
+
+    /**
      * @param array<int, int|string> $attachmentIds
      */
     private function deleteTaskAttachments(Task $task, array $attachmentIds): void
@@ -392,6 +436,8 @@ class TaskController extends Controller
 
     private function syncPrimaryAttachment(Task $task): void
     {
+        $this->normalizeLegacyPrimaryAttachment($task);
+
         $primaryAttachmentId = File::where('task_id', $task->id)
             ->where('type', 'task')
             ->orderBy('id')
@@ -409,5 +455,21 @@ class TaskController extends Controller
     private function loadTaskRelations(Task $task): Task
     {
         return $task->fresh(['attachment', 'attachments']) ?? $task->load(['attachment', 'attachments']);
+    }
+
+    private function normalizeLegacyPrimaryAttachment(Task $task): void
+    {
+        if (is_null($task->attachment_id)) {
+            return;
+        }
+
+        File::whereKey($task->attachment_id)
+            ->whereNull('task_id')
+            ->update([
+                'task_id' => $task->id,
+                'course_id' => $task->course_id,
+                'type' => 'task',
+                'is_public' => true,
+            ]);
     }
 }

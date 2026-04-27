@@ -252,6 +252,26 @@ class ControllerRegressionTest extends TestCase
         Storage::disk('public')->assertMissing('tasks/old.txt');
     }
 
+    public function test_task_attachments_total_size_is_limited_to_100_mb(): void
+    {
+        Storage::fake('public');
+
+        ['teacher' => $teacher, 'course' => $course, 'discipline' => $discipline] = $this->createCourseContext();
+
+        $this->actingAs($teacher, 'api')
+            ->post('/api/task', [
+                'course_id' => $course->id,
+                'discipline_id' => $discipline->id,
+                'name' => 'Task with oversized materials',
+                'attachments' => [
+                    UploadedFile::fake()->create('part-one.bin', 60 * 1024),
+                    UploadedFile::fake()->create('part-two.bin', 50 * 1024),
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('attachments');
+    }
+
     private function createUser(): User
     {
         $userRole = Role::where('name', 'user')->firstOrFail();

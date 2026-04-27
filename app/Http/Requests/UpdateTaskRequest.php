@@ -18,9 +18,9 @@ class UpdateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|file',
+            'attachment' => 'sometimes|file|max:102400',
             'attachments' => 'sometimes|array',
-            'attachments.*' => 'file',
+            'attachments.*' => 'file|max:102400',
             'removed_attachment_ids' => 'sometimes|array',
             'removed_attachment_ids.*' => 'integer|exists:files,id',
         ];

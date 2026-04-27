@@ -20,9 +20,9 @@ class CreateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|file',
+            'attachment' => 'sometimes|file|max:102400',
             'attachments' => 'sometimes|array',
-            'attachments.*' => 'file',
+            'attachments.*' => 'file|max:102400',
         ];
     }
 }

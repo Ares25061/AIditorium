@@ -55,6 +55,7 @@ return [
     'ai_review_exists' => 'Для этой сдачи уже есть актуальный AI-review',
     'ai_review_not_completed' => 'AI-review еще не завершен или не содержит рекомендованную оценку',
     'ai_review_invalid_submission' => 'Указанный файл не является сдачей для этого задания',
+    'task_attachments_total_too_large' => 'Общий размер материалов задания не должен превышать :max.',
 
     // Items names
     'items' => [
