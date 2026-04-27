@@ -18,11 +18,21 @@ class UpdateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|file|max:102400',
+            'attachment' => 'sometimes|file|max:10240',
             'attachments' => 'sometimes|array',
-            'attachments.*' => 'file|max:102400',
+            'attachments.*' => 'file|max:10240',
             'removed_attachment_ids' => 'sometimes|array',
             'removed_attachment_ids.*' => 'integer|exists:files,id',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'attachment.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'attachment.uploaded' => __('messages.file_upload_failed'),
+            'attachments.*.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'attachments.*.uploaded' => __('messages.file_upload_failed'),
         ];
     }
 }

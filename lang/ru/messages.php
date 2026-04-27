@@ -41,6 +41,8 @@ return [
     'course_archived' => 'Нельзя покинуть или войти в архивированный курс',
     'invalid_invite_code' => 'Неверный инвайт-код',
     'file_not_on_server' => 'Файл отсутствует на сервере',
+    'file_upload_failed' => 'Не удалось загрузить файл. Проверьте лимиты загрузки PHP и веб-сервера.',
+    'file_upload_too_large' => 'Размер файла не должен превышать :max.',
     'student_not_enrolled' => 'Студент не записан на этот курс',
     'avatar_upload_not_image' => 'Аватар должен быть изображением.',
     'avatar_upload_invalid_type' => 'Для аватара поддерживаются только JPG, PNG, GIF и WEBP.',
