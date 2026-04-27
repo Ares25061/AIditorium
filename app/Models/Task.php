@@ -49,6 +49,11 @@ class Task extends Model
         return $this->belongsTo(File::class, 'attachment_id');
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(File::class)->where('type', 'task')->orderBy('id');
+    }
+
     public function reviewProfile(): HasOne
     {
         return $this->hasOne(TaskReviewProfile::class);

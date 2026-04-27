@@ -12,6 +12,7 @@ use App\Services\FileUploadService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -27,7 +28,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view-any', Task::class);
-        $tasks = Task::paginate($request->per_page ?? 15);
+        $tasks = Task::with(['attachment', 'attachments'])->paginate($request->per_page ?? 15);
         if ($tasks->isEmpty()) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -45,37 +46,33 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('create', [Task::class, $course]);
+        $uploadedAttachments = $this->collectTaskAttachmentUploads($request);
         $validated['user_id'] = $user->id;
-        if (isset($validated['attachment'])) {
-            $file = $this->fileUploadService->storeUploadedFile(
-                $request->file('attachment'),
-                [
-                    'course_id' => $course->id,
-                    'task_id' => null,
-                    'user_id' => $user->id,
-                    'type' => 'task',
-                    'is_public' => true,
-                ],
-                'tasks',
-                'public',
-            );
-            $validated['attachment_id'] = $file->id;
-            unset($validated['attachment']);
-        }
+        unset($validated['attachment'], $validated['attachments']);
         if (array_key_exists('deadline', $validated)) {
             $validated['deadline'] = $this->normalizeDeadline($validated['deadline']);
         }
+        $validated['scores'] = $validated['scores'] ?? 100;
+        $validated['deadline'] = $validated['deadline'] ?? $this->normalizeDeadline(Carbon::now()->addDay(7));
+
         $task = Task::create([
             ...$validated,
-            'scores' => $request->scores ?? 100,
-            'deadline' => $validated['deadline'] ?? $this->normalizeDeadline(Carbon::now()->addDay(7)),
         ]);
-        return response()->json(['message' => __('messages.created', ['item' => __('messages.items.task')]), 'task' => $task], 200);
+
+        if (!empty($uploadedAttachments)) {
+            $this->storeTaskAttachments($uploadedAttachments, $course, $task, $user->id);
+            $this->syncPrimaryAttachment($task);
+        }
+
+        return response()->json([
+            'message' => __('messages.created', ['item' => __('messages.items.task')]),
+            'task' => $this->loadTaskRelations($task),
+        ], 200);
     }
 
     public function show(int $id)
     {
-        $task = Task::find($id);
+        $task = Task::with(['attachment', 'attachments'])->find($id);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -100,6 +97,7 @@ class TaskController extends Controller
         $task = Task::where('course_id', $course->id)
             ->where('discipline_id', $discipline->id)
             ->where('task_number', $number)
+            ->with(['attachment', 'attachments'])
             ->first();
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
@@ -122,33 +120,27 @@ class TaskController extends Controller
         if (array_key_exists('deadline', $validated)) {
             $validated['deadline'] = $this->normalizeDeadline($validated['deadline']);
         }
-        if (isset($validated['attachment'])) {
-            if (!is_null($task->attachment_id)) {
-                $oldFile = File::find($task->attachment_id);
-                if (!is_null($oldFile) && Storage::disk('public')->exists($oldFile->path)) {
-                    Storage::disk('public')->delete($oldFile->path);
-                    $oldFile->delete();
-                }
-            }
-            $file = $this->fileUploadService->storeUploadedFile(
-                $request->file('attachment'),
-                [
-                    'course_id' => $course?->id,
-                    'task_id' => $task->id,
-                    'user_id' => $user->id,
-                    'type' => 'task',
-                    'is_public' => true,
-                ],
-                'tasks',
-                'public',
-            );
-            $validated['attachment_id'] = $file->id;
-            unset($validated['attachment']);
+        $uploadedAttachments = $this->collectTaskAttachmentUploads($request);
+        $removedAttachmentIds = $validated['removed_attachment_ids'] ?? [];
+        unset($validated['attachment'], $validated['attachments'], $validated['removed_attachment_ids']);
+
+        if (!empty($removedAttachmentIds)) {
+            $this->deleteTaskAttachments($task, $removedAttachmentIds);
         }
+
+        if (!empty($uploadedAttachments)) {
+            $this->storeTaskAttachments($uploadedAttachments, $course, $task, $user->id);
+        }
+
         $task->update([
             ...$validated,
         ]);
-        return response()->json(['message' => __('messages.updated', ['item' => __('messages.items.task')]), 'task' => $task], 200);
+        $this->syncPrimaryAttachment($task);
+
+        return response()->json([
+            'message' => __('messages.updated', ['item' => __('messages.items.task')]),
+            'task' => $this->loadTaskRelations($task),
+        ], 200);
     }
 
     public function destroy(int $id)
@@ -178,7 +170,9 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
         $this->authorize('view-tasks', [Task::class, $course]);
-        $query = Task::query()->where('course_id', $validated['course_id']);
+        $query = Task::query()
+            ->with(['attachment', 'attachments'])
+            ->where('course_id', $validated['course_id']);
 
         if (isset($validated['discipline_id'])) {
             $query->where('discipline_id', $validated['discipline_id']);
@@ -315,5 +309,105 @@ class TaskController extends Controller
         return Carbon::parse($deadline)
             ->setTimezone((string) config('app.timezone', 'UTC'))
             ->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * @return array<int, UploadedFile>
+     */
+    private function collectTaskAttachmentUploads(Request $request): array
+    {
+        $attachments = $request->file('attachments', []);
+
+        if ($attachments instanceof UploadedFile) {
+            $attachments = [$attachments];
+        }
+
+        $attachments = array_values(array_filter(
+            is_array($attachments) ? $attachments : [],
+            fn ($file) => $file instanceof UploadedFile,
+        ));
+
+        if (!empty($attachments)) {
+            return $attachments;
+        }
+
+        $legacyAttachment = $request->file('attachment');
+
+        return $legacyAttachment instanceof UploadedFile ? [$legacyAttachment] : [];
+    }
+
+    /**
+     * @param array<int, UploadedFile> $uploadedAttachments
+     */
+    private function storeTaskAttachments(array $uploadedAttachments, ?Course $course, Task $task, int $userId): void
+    {
+        foreach ($uploadedAttachments as $uploadedAttachment) {
+            $this->fileUploadService->storeUploadedFile(
+                $uploadedAttachment,
+                [
+                    'course_id' => $course?->id,
+                    'task_id' => $task->id,
+                    'user_id' => $userId,
+                    'type' => 'task',
+                    'is_public' => true,
+                ],
+                'tasks',
+                'public',
+            );
+        }
+    }
+
+    /**
+     * @param array<int, int|string> $attachmentIds
+     */
+    private function deleteTaskAttachments(Task $task, array $attachmentIds): void
+    {
+        $attachmentIds = array_values(array_unique(array_map('intval', $attachmentIds)));
+
+        if (empty($attachmentIds)) {
+            return;
+        }
+
+        $files = File::whereIn('id', $attachmentIds)
+            ->where(function ($query) use ($task) {
+                $query->where(function ($query) use ($task) {
+                    $query->where('task_id', $task->id)
+                        ->where('type', 'task');
+                });
+
+                if (!is_null($task->attachment_id)) {
+                    $query->orWhere('id', $task->attachment_id);
+                }
+            })
+            ->get();
+
+        foreach ($files as $file) {
+            if (Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
+            }
+
+            $file->delete();
+        }
+    }
+
+    private function syncPrimaryAttachment(Task $task): void
+    {
+        $primaryAttachmentId = File::where('task_id', $task->id)
+            ->where('type', 'task')
+            ->orderBy('id')
+            ->value('id');
+
+        if (is_null($primaryAttachmentId) && !is_null($task->attachment_id)) {
+            $primaryAttachmentId = File::whereKey($task->attachment_id)->value('id');
+        }
+
+        if ((int) $task->attachment_id !== (int) $primaryAttachmentId) {
+            $task->forceFill(['attachment_id' => $primaryAttachmentId])->save();
+        }
+    }
+
+    private function loadTaskRelations(Task $task): Task
+    {
+        return $task->fresh(['attachment', 'attachments']) ?? $task->load(['attachment', 'attachments']);
     }
 }

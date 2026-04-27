@@ -73,9 +73,9 @@ return [
     ],
     'task' => [
         'index' => ['summary' => 'List tasks', 'description' => 'Get a paginated list of all tasks (for admin).'],
-        'store' => ['summary' => 'Create task', 'description' => 'Create a new task in a course with optional attachment.'],
+        'store' => ['summary' => 'Create task', 'description' => 'Create a new task in a course with optional attachments.'],
         'show' => ['summary' => 'Get task details', 'description' => 'Display specific task information.'],
-        'update' => ['summary' => 'Update task', 'description' => 'Update task information and optional attachment.'],
+        'update' => ['summary' => 'Update task', 'description' => 'Update task information and attached materials.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
         'attachSubmission' => ['summary' => 'Submit work', 'description' => 'Attach a file as submission for a task (student).'],
