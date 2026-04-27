@@ -41,6 +41,8 @@ return [
     'course_archived' => 'Cant leave or enter in an archived course',
     'invalid_invite_code' => 'Invalid invite code',
     'file_not_on_server' => 'File does not exist on server',
+    'file_upload_failed' => 'The file could not be uploaded. Check PHP/web-server upload limits.',
+    'file_upload_too_large' => 'The file must not be larger than :max.',
     'student_not_enrolled' => 'Student is not enrolled in this course',
     'avatar_upload_not_image' => 'Avatar must be an image.',
     'avatar_upload_invalid_type' => 'Avatar supports only JPG, PNG, GIF, and WEBP.',

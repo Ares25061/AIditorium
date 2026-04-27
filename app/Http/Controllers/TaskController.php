@@ -157,9 +157,14 @@ class TaskController extends Controller
 
         $request->validate([
             'files' => 'required_without:attachments|array|min:1',
-            'files.*' => 'file|max:102400',
+            'files.*' => 'file|max:10240',
             'attachments' => 'required_without:files|array|min:1',
-            'attachments.*' => 'file|max:102400',
+            'attachments.*' => 'file|max:10240',
+        ], [
+            'files.*.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'files.*.uploaded' => __('messages.file_upload_failed'),
+            'attachments.*.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'attachments.*.uploaded' => __('messages.file_upload_failed'),
         ]);
 
         $uploadedAttachments = $this->collectTaskAttachmentUploads($request, ['files', 'attachments']);
@@ -223,8 +228,11 @@ class TaskController extends Controller
         $user = Auth::user();
         $validated = $request->validate([
             'task_id' => 'required|integer|exists:tasks,id',
-            'file' => 'required|file|max:20480',
+            'file' => 'required|file|max:10240',
             'comment' => 'sometimes|string|max:1000',
+        ], [
+            'file.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'file.uploaded' => __('messages.file_upload_failed'),
         ]);
 
         $task = Task::find($validated['task_id']);
