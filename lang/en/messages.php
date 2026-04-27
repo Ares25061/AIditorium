@@ -55,6 +55,7 @@ return [
     'ai_review_exists' => 'An active AI review already exists for this submission',
     'ai_review_not_completed' => 'The AI review is not completed or has no recommended score',
     'ai_review_invalid_submission' => 'The selected file is not a submission for this task',
+    'task_attachments_total_too_large' => 'The total size of task materials must not exceed :max.',
 
     // Items names (for :item placeholder)
     'items' => [
