@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateTaskReviewProfileRequest;
-use App\Models\Course;
 use App\Models\Task;
 use App\Models\TaskReviewProfile;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -19,8 +18,7 @@ class TaskReviewProfileController extends Controller
 
     public function show(Task $task)
     {
-        $course = Course::find($task->course_id);
-        $this->authorize('manage-review-profile', [Task::class, $course]);
+        $this->authorize('manage-review-profile', $task);
 
         $profile = $task->reviewProfile;
 
@@ -38,8 +36,7 @@ class TaskReviewProfileController extends Controller
 
     public function update(UpdateTaskReviewProfileRequest $request, Task $task)
     {
-        $course = Course::find($task->course_id);
-        $this->authorize('manage-review-profile', [Task::class, $course]);
+        $this->authorize('manage-review-profile', $task);
 
         $validated = $request->validated();
 

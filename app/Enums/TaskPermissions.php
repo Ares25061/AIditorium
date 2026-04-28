@@ -9,6 +9,7 @@ enum TaskPermissions : string
     case CREATE = 'tasks.create';
     case UPDATE = 'tasks.update';
     case DELETE = 'tasks.delete';
+    case REVIEW_SUBMISSIONS = 'tasks.review-submissions';
 
     public static function values(): array
     {

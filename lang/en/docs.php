@@ -78,9 +78,13 @@ return [
         'update' => ['summary' => 'Update task', 'description' => 'Update task information and attached materials.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
+        'showByNumber' => ['summary' => 'Get task by number', 'description' => 'Get a task by its number, course id or slug, and discipline id or slug.'],
+        'uploadAttachments' => ['summary' => 'Upload task materials', 'description' => 'Upload one or more materials for a task.'],
+        'reviewers' => ['summary' => 'Task reviewers', 'description' => 'Get selected reviewers and eligible teachers for a task.'],
+        'updateReviewers' => ['summary' => 'Update task reviewers', 'description' => 'Assign teachers who can review submissions for a task.'],
         'attachSubmission' => ['summary' => 'Submit work', 'description' => 'Attach a file as submission for a task (student).'],
         'detachSubmission' => ['summary' => 'Remove submission', 'description' => 'Remove your submission from a task (student).'],
-        'submissions' => ['summary' => 'All submissions', 'description' => 'Get all submissions for a task (teacher only).'],
+        'submissions' => ['summary' => 'Task submissions', 'description' => 'Get all submissions for a task (task author or assigned reviewer only).'],
     ],
     'comment' => [
         'index' => ['summary' => 'List comments', 'description' => 'Get paginated list of all comments (admin only).'],
@@ -104,7 +108,6 @@ return [
         'myGrades' => ['summary' => 'My grades', 'description' => 'Get your own grades in a course (student).'],
         'studentGrades' => ['summary' => 'Student grades', 'description' => 'Get specific student grades (teacher only).'],
         'statistics' => ['summary' => 'Grade statistics', 'description' => 'Get grade statistics for a course (teacher only).'],
-        'showByNumber' => ['summary' => 'Show task task number', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
     ],
 
     'taskreviewprofile' => [

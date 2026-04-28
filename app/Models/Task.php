@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -62,5 +63,12 @@ class Task extends Model
     public function aiReviewRuns(): HasMany
     {
         return $this->hasMany(AiReviewRun::class);
+    }
+
+    public function reviewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_reviewers')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
     }
 }

@@ -289,6 +289,7 @@ class ControllerRegressionTest extends TestCase
         ['teacher' => $teacher, 'task' => $task] = $this->createCourseContext();
 
         $this->actingAs($teacher, 'api')
+            ->withHeaders(['Accept' => 'application/json'])
             ->post("/api/task/{$task->id}/attachments", [
                 'files' => [
                     UploadedFile::fake()->create('large.pdf', (10 * 1024) + 1),
@@ -305,17 +306,117 @@ class ControllerRegressionTest extends TestCase
         ['teacher' => $teacher, 'course' => $course, 'discipline' => $discipline] = $this->createCourseContext();
 
         $this->actingAs($teacher, 'api')
+            ->withHeaders(['Accept' => 'application/json'])
             ->post('/api/task', [
                 'course_id' => $course->id,
                 'discipline_id' => $discipline->id,
                 'name' => 'Task with oversized materials',
                 'attachments' => [
-                    UploadedFile::fake()->create('part-one.bin', 60 * 1024),
-                    UploadedFile::fake()->create('part-two.bin', 50 * 1024),
+                    ...array_map(
+                        fn (int $index) => UploadedFile::fake()->create("part-{$index}.bin", 10 * 1024),
+                        range(1, 10),
+                    ),
+                    UploadedFile::fake()->create('extra.bin', 1),
                 ],
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('attachments');
+    }
+
+    public function test_only_task_author_or_assigned_reviewer_can_view_submissions(): void
+    {
+        Storage::fake('public');
+
+        ['teacher' => $teacher, 'student' => $student, 'course' => $course, 'task' => $task] = $this->createCourseContext();
+        $otherTeacher = $this->createUser();
+        $otherTeacher->courses()->attach($course->id, ['role' => 'teacher']);
+
+        File::create([
+            'path' => 'submissions/work.txt',
+            'original_name' => 'work.txt',
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+            'size_bytes' => 4,
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'type' => 'submission',
+            'is_public' => false,
+        ]);
+
+        $this->actingAs($otherTeacher, 'api')
+            ->postJson('/api/task/submissions', [
+                'task_id' => $task->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($teacher, 'api')
+            ->postJson('/api/task/submissions', [
+                'task_id' => $task->id,
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'submissions.data');
+
+        $this->actingAs($teacher, 'api')
+            ->postJson("/api/task/{$task->id}/reviewers", [
+                'reviewer_ids' => [$otherTeacher->id],
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'reviewers');
+
+        $this->assertDatabaseHas('task_reviewers', [
+            'task_id' => $task->id,
+            'user_id' => $otherTeacher->id,
+            'assigned_by' => $teacher->id,
+        ]);
+
+        $this->actingAs($otherTeacher, 'api')
+            ->postJson('/api/task/submissions', [
+                'task_id' => $task->id,
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'submissions.data');
+    }
+
+    public function test_task_reviewer_assignment_rejects_non_teacher(): void
+    {
+        ['teacher' => $teacher, 'student' => $student, 'task' => $task] = $this->createCourseContext();
+
+        $this->actingAs($teacher, 'api')
+            ->postJson("/api/task/{$task->id}/reviewers", [
+                'reviewer_ids' => [$student->id],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('reviewer_ids');
+    }
+
+    public function test_non_reviewer_teacher_cannot_grade_task_submission(): void
+    {
+        ['teacher' => $teacher, 'student' => $student, 'course' => $course, 'discipline' => $discipline, 'task' => $task] = $this->createCourseContext();
+        $otherTeacher = $this->createUser();
+        $otherTeacher->courses()->attach($course->id, ['role' => 'teacher']);
+
+        $payload = [
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'discipline_id' => $discipline->id,
+            'grade' => 90,
+        ];
+
+        $this->actingAs($otherTeacher, 'api')
+            ->postJson('/api/grade', $payload)
+            ->assertForbidden();
+
+        $this->actingAs($teacher, 'api')
+            ->postJson("/api/task/{$task->id}/reviewers", [
+                'reviewer_ids' => [$otherTeacher->id],
+            ])
+            ->assertOk();
+
+        $this->actingAs($otherTeacher, 'api')
+            ->postJson('/api/grade', $payload)
+            ->assertCreated();
     }
 
     private function createUser(): User

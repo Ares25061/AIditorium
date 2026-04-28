@@ -66,6 +66,12 @@ class GradeController extends Controller
             if (!$task) {
                 return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
             }
+
+            if ((int) $task->course_id !== (int) $course->id) {
+                return response()->json(['error' => __('messages.validation_failed')], 422);
+            }
+
+            $this->authorize('view-submissions', $task);
         }
 
 
@@ -171,6 +177,7 @@ class GradeController extends Controller
     {
         $validated = $request->validate([
             'course_id' => 'required|integer|exists:courses,id',
+            'task_id' => 'sometimes|integer|exists:tasks,id',
         ]);
 
         $course = Course::find($validated['course_id']);
@@ -178,9 +185,22 @@ class GradeController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.course')])], 404);
         }
 
-        $this->authorize('viewAnyInCourse', [Grade::class, $course]);
+        $task = null;
+
+        if (isset($validated['task_id'])) {
+            $task = Task::find($validated['task_id']);
+
+            if (!$task || (int) $task->course_id !== (int) $course->id) {
+                return response()->json(['error' => __('messages.validation_failed')], 422);
+            }
+
+            $this->authorize('view-submissions', $task);
+        } else {
+            $this->authorize('viewAnyInCourse', [Grade::class, $course]);
+        }
 
         $grades = Grade::where('course_id', $validated['course_id'])
+            ->when($task, fn ($query) => $query->where('task_id', $task->id))
             ->with(['student', 'task', 'discipline', 'grader'])
             ->paginate($request->per_page ?? 15);
 

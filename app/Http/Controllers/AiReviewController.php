@@ -6,7 +6,6 @@ use App\Enums\ReviewRunStatus;
 use App\Http\Requests\QueueAiReviewRequest;
 use App\Jobs\ProcessAiReviewRunJob;
 use App\Models\AiReviewRun;
-use App\Models\Course;
 use App\Models\File;
 use App\Models\Grade;
 use App\Models\Task;
@@ -21,8 +20,7 @@ class AiReviewController extends Controller
 
     public function queue(QueueAiReviewRequest $request, Task $task, File $file)
     {
-        $course = Course::find($task->course_id);
-        $this->authorize('run-ai-review', [Task::class, $course]);
+        $this->authorize('run-ai-review', $task);
 
         if ($file->task_id !== $task->id || $file->type !== 'submission') {
             return response()->json(['error' => __('messages.ai_review_invalid_submission')], 422);
@@ -79,8 +77,7 @@ class AiReviewController extends Controller
 
     public function index(Task $task, Request $request)
     {
-        $course = Course::find($task->course_id);
-        $this->authorize('view-ai-reviews', [Task::class, $course]);
+        $this->authorize('view-ai-reviews', $task);
 
         $reviews = AiReviewRun::where('task_id', $task->id)
             ->with(['file', 'student:id,name,email', 'requester:id,name,email'])
@@ -92,8 +89,11 @@ class AiReviewController extends Controller
 
     public function show(AiReviewRun $review)
     {
-        $course = $review->course ?? Course::find($review->course_id);
-        $this->authorize('view-ai-reviews', [Task::class, $course]);
+        $task = $review->task ?? Task::find($review->task_id);
+        if (!$task) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
+        }
+        $this->authorize('view-ai-reviews', $task);
 
         return response()->json([
             'review' => $review->load(['file', 'student:id,name,email', 'requester:id,name,email', 'task']),
@@ -102,8 +102,11 @@ class AiReviewController extends Controller
 
     public function applyGrade(AiReviewRun $review)
     {
-        $course = $review->course ?? Course::find($review->course_id);
-        $this->authorize('apply-ai-review-grade', [Task::class, $course]);
+        $task = $review->task ?? Task::find($review->task_id);
+        if (!$task) {
+            return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
+        }
+        $this->authorize('apply-ai-review-grade', $task);
 
         if ($review->status !== ReviewRunStatus::COMPLETED || $review->recommended_score === null) {
             return response()->json(['error' => __('messages.ai_review_not_completed')], 422);

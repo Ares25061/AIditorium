@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CourseUsersRoleEnum;
 use App\Http\Requests\CreateTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Models\Course;
@@ -31,7 +32,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view-any', Task::class);
-        $tasks = Task::with(['attachment', 'attachments'])->paginate($request->per_page ?? 15);
+        $tasks = Task::with(['attachment', 'attachments', 'reviewers:id,name,email,avatar'])->paginate($request->per_page ?? 15);
         if ($tasks->isEmpty()) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -76,7 +77,7 @@ class TaskController extends Controller
 
     public function show(int $id)
     {
-        $task = Task::with(['attachment', 'attachments'])->find($id);
+        $task = Task::with(['attachment', 'attachments', 'reviewers:id,name,email,avatar'])->find($id);
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
@@ -101,7 +102,7 @@ class TaskController extends Controller
         $task = Task::where('course_id', $course->id)
             ->where('discipline_id', $discipline->id)
             ->where('task_number', $number)
-            ->with(['attachment', 'attachments'])
+            ->with(['attachment', 'attachments', 'reviewers:id,name,email,avatar'])
             ->first();
         if (is_null($task)) {
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
@@ -178,6 +179,56 @@ class TaskController extends Controller
         ], 201);
     }
 
+    public function reviewers(Task $task)
+    {
+        $course = Course::find($task->course_id);
+        $this->authorize('view', [Task::class, $course]);
+
+        return response()->json([
+            'reviewers' => $this->taskReviewers($task),
+            'eligible_reviewers' => $this->eligibleTaskReviewers($task),
+            'can_manage_reviewers' => Auth::user()?->can('manage-reviewers', $task) ?? false,
+        ]);
+    }
+
+    public function updateReviewers(Request $request, Task $task)
+    {
+        $this->authorize('manage-reviewers', $task);
+
+        $validated = $request->validate([
+            'reviewer_ids' => 'sometimes|array',
+            'reviewer_ids.*' => 'integer|exists:users,id',
+        ]);
+
+        $reviewerIds = array_values(array_unique(array_map('intval', $validated['reviewer_ids'] ?? [])));
+        $eligibleReviewerIds = $this->eligibleTaskReviewers($task)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $invalidReviewerIds = array_diff($reviewerIds, $eligibleReviewerIds);
+
+        if (!empty($invalidReviewerIds)) {
+            throw ValidationException::withMessages([
+                'reviewer_ids' => [__('messages.invalid_task_reviewers')],
+            ]);
+        }
+
+        $syncPayload = collect($reviewerIds)
+            ->mapWithKeys(fn (int $reviewerId) => [
+                $reviewerId => ['assigned_by' => Auth::id()],
+            ])
+            ->all();
+
+        $task->reviewers()->sync($syncPayload);
+
+        return response()->json([
+            'message' => __('messages.updated', ['item' => __('messages.items.task')]),
+            'reviewers' => $this->taskReviewers($task),
+            'eligible_reviewers' => $this->eligibleTaskReviewers($task),
+            'can_manage_reviewers' => true,
+        ]);
+    }
+
     public function destroy(int $id)
     {
         $task = Task::find($id);
@@ -206,7 +257,7 @@ class TaskController extends Controller
         }
         $this->authorize('view-tasks', [Task::class, $course]);
         $query = Task::query()
-            ->with(['attachment', 'attachments'])
+            ->with(['attachment', 'attachments', 'reviewers:id,name,email,avatar'])
             ->where('course_id', $validated['course_id']);
 
         if (isset($validated['discipline_id'])) {
@@ -309,8 +360,7 @@ class TaskController extends Controller
             return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
         }
 
-        $course = Course::find($task->course_id);
-        $this->authorize('view-submissions', [Task::class, $course]);
+        $this->authorize('view-submissions', $task);
 
         $submissions = File::where('task_id', $validated['task_id'])
             ->where('type', 'submission')
@@ -487,7 +537,33 @@ class TaskController extends Controller
 
     private function loadTaskRelations(Task $task): Task
     {
-        return $task->fresh(['attachment', 'attachments']) ?? $task->load(['attachment', 'attachments']);
+        $relations = ['attachment', 'attachments', 'reviewers:id,name,email,avatar'];
+
+        return $task->fresh($relations) ?? $task->load($relations);
+    }
+
+    private function taskReviewers(Task $task)
+    {
+        return $task->reviewers()
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar')
+            ->orderBy('users.name')
+            ->get();
+    }
+
+    private function eligibleTaskReviewers(Task $task)
+    {
+        $course = Course::find($task->course_id);
+
+        if (!$course) {
+            return collect();
+        }
+
+        return $course->users()
+            ->wherePivot('role', CourseUsersRoleEnum::TEACHER->value)
+            ->where('users.id', '!=', $task->user_id)
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar')
+            ->orderBy('users.name')
+            ->get();
     }
 
     private function normalizeLegacyPrimaryAttachment(Task $task): void

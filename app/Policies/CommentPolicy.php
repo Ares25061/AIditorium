@@ -5,8 +5,10 @@ namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
 use App\Enums\CommentPermissions;
+use App\Enums\TaskPermissions;
 use App\Models\Comment;
 use App\Models\Course;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -32,6 +34,10 @@ class CommentPolicy
             return Response::allow();
         }
 
+        if ($this->ownsCommentSubmission($user, $comment)) {
+            return Response::allow();
+        }
+
         // Teacher in the course can view all comments
         if ($comment->course_id) {
             $userCourse = $user->courses()
@@ -39,7 +45,9 @@ class CommentPolicy
                 ->first();
 
             if ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
-                return Response::allow();
+                if (!$comment->task_id || $this->canReviewTask($user, $comment->task)) {
+                    return Response::allow();
+                }
             }
         }
 
@@ -76,7 +84,9 @@ class CommentPolicy
                 ->first();
 
             if ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
-                return Response::allow();
+                if (!$comment->task_id || $this->canReviewTask($user, $comment->task)) {
+                    return Response::allow();
+                }
             }
         }
 
@@ -102,7 +112,9 @@ class CommentPolicy
                 ->first();
 
             if ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value) {
-                return Response::allow();
+                if (!$comment->task_id || $this->canReviewTask($user, $comment->task)) {
+                    return Response::allow();
+                }
             }
         }
 
@@ -120,5 +132,43 @@ class CommentPolicy
         }
 
         return Response::deny(__('policies.comment.view_any_in_course.deny'));
+    }
+
+    private function ownsCommentSubmission(User $user, Comment $comment): bool
+    {
+        $file = $comment->file;
+
+        if ($file && $file->type === 'submission' && (int) $file->user_id === (int) $user->id) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function canReviewTask(User $user, ?Task $task): bool
+    {
+        if (!$task) {
+            return false;
+        }
+
+        if ($user->hasPermission(TaskPermissions::REVIEW_SUBMISSIONS)) {
+            return true;
+        }
+
+        $userCourse = $user->courses()
+            ->where('course_id', $task->course_id)
+            ->first();
+
+        if (!$userCourse || $userCourse->pivot->role !== CourseUsersRoleEnum::TEACHER->value) {
+            return false;
+        }
+
+        if ((int) $task->user_id === (int) $user->id) {
+            return true;
+        }
+
+        return $task->reviewers()
+            ->whereKey($user->id)
+            ->exists();
     }
 }

@@ -76,6 +76,21 @@ class CommentController extends Controller
             if (!$file) {
                 return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.file')])], 404);
             }
+
+            if ($file->type === 'submission' && $file->task_id) {
+                if (isset($validated['task_id']) && (int) $validated['task_id'] !== (int) $file->task_id) {
+                    return response()->json(['error' => __('messages.validation_failed')], 422);
+                }
+
+                if ((int) $file->user_id !== (int) $user->id) {
+                    $submissionTask = Task::find($file->task_id);
+                    if (!$submissionTask) {
+                        return response()->json(['error' => __('messages.not_found', ['item' => __('messages.items.task')])], 404);
+                    }
+
+                    $this->authorize('view-submissions', $submissionTask);
+                }
+            }
         }
 
         $comment = Comment::create([
@@ -175,10 +190,26 @@ class CommentController extends Controller
         }
 
         $course = Course::find($task->course_id);
-        $this->authorize('view', [Task::class, $course]);
+        $user = Auth::user();
+        $userCourse = $user->courses()
+            ->where('course_id', $course->id)
+            ->first();
+        $isTeacher = $userCourse && $userCourse->pivot->role === 'teacher';
+
+        if ($isTeacher) {
+            $this->authorize('view-submissions', $task);
+        } else {
+            $this->authorize('view', [Task::class, $course]);
+        }
 
         $comments = Comment::where('task_id', $validated['task_id'])
             ->whereNull('parent_id')
+            ->when(!$isTeacher, function ($query) use ($user) {
+                $query->where(function ($query) use ($user) {
+                    $query->whereNull('file_id')
+                        ->orWhereHas('file', fn ($query) => $query->where('user_id', $user->id));
+                });
+            })
             ->with(['user', 'replies.user'])
             ->paginate($request->per_page ?? 15);
 

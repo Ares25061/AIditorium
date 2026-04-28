@@ -5,8 +5,10 @@ namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
 use App\Enums\FilePermissions;
+use App\Enums\TaskPermissions;
 use App\Models\Course;
 use App\Models\File;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -42,6 +44,14 @@ class FilePolicy
         }
 
         // проверяем, является ли пользователь учителем в этом курсе
+        if ($file->type === 'submission' && $file->task_id) {
+            if ($this->canReviewTask($user, Task::find($file->task_id))) {
+                return Response::allow();
+            }
+
+            return Response::deny(__('policies.file.check_course_access.deny'));
+        }
+
         $userCourse = $user->courses()
             ->where('course_id', $course->id)
             ->first();
@@ -104,5 +114,32 @@ class FilePolicy
             return Response::allow();
         }
         return Response::deny(__('policies.file.delete.deny'));
+    }
+
+    private function canReviewTask(User $user, ?Task $task): bool
+    {
+        if (!$task) {
+            return false;
+        }
+
+        if ($user->hasPermission(TaskPermissions::REVIEW_SUBMISSIONS)) {
+            return true;
+        }
+
+        $userCourse = $user->courses()
+            ->where('course_id', $task->course_id)
+            ->first();
+
+        if (!$userCourse || $userCourse->pivot->role !== CourseUsersRoleEnum::TEACHER->value) {
+            return false;
+        }
+
+        if ((int) $task->user_id === (int) $user->id) {
+            return true;
+        }
+
+        return $task->reviewers()
+            ->whereKey($user->id)
+            ->exists();
     }
 }
