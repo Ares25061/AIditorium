@@ -92,6 +92,14 @@ AI_BASE_URL=https://openrouter.ai/api/v1
 AI_API_KEY=your_key_here
 AI_MODEL=openai/gpt-4.1-mini
 AI_TIMEOUT=120
+AI_TEMPERATURE=0.1
+AI_MAX_COMPLETION_TOKENS=4096
+AI_OPENROUTER_RETRY_ATTEMPTS=3
+AI_OPENROUTER_RETRY_DELAY_MS=500
+AI_OPENROUTER_JSON_MODE=true
+AI_OPENROUTER_RETRY_WITHOUT_JSON_MODE=true
+AI_OPENROUTER_REASONING_EFFORT=none
+AI_OPENROUTER_EXCLUDE_REASONING=true
 ```
 
 Дополнительно можно настраивать лимиты AI-извлечения:
@@ -101,6 +109,8 @@ AI_TIMEOUT=120
 - `AI_MAX_FILES_PER_REVIEW`
 - `AI_ZIP_MAX_ENTRIES`
 - `AI_ZIP_MAX_TOTAL_UNCOMPRESSED_BYTES`
+
+Для reasoning-моделей OpenRouter, например `minimax/minimax-m2.5:free`, по умолчанию включены повторы запроса, увеличенный лимит ответа и повтор без JSON mode. Это снижает риск ошибки `OpenRouter returned an empty completion`, когда провайдер возвращает успешный ответ без `message.content`.
 
 ### 3. Запуск приложения
 
