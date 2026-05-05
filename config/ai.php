@@ -51,6 +51,6 @@ return [
         'php', 'js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'kt', 'kts',
         'cs', 'go', 'rs', 'rb', 'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'hh', 'hxx',
         'swift', 'sql', 'sh', 'ps1', 'html', 'htm', 'css', 'scss', 'less',
-        'docx', 'doc', 'xlsx', 'xls', 'csv', 'tsv', 'zip',
+        'docx', 'doc', 'xlsx', 'xls', 'csv', 'tsv', 'zip', 'rar', '7z',
     ],
 ];

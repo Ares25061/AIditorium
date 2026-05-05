@@ -3,6 +3,9 @@
 namespace App\AI\Services;
 
 use App\Models\File;
+use DOMDocument;
+use DOMElement;
+use DOMXPath;
 use Illuminate\Support\Facades\File as LocalFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -18,13 +21,13 @@ class SubmissionExtractor
     public function extract(File $file): array
     {
         $path = Storage::disk('public')->path($file->path);
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             throw new RuntimeException('Submission file is missing on disk.');
         }
 
         $extension = strtolower((string) ($file->extension ?: pathinfo($path, PATHINFO_EXTENSION)));
 
-        if (!in_array($extension, config('ai.supported_extensions', []), true)) {
+        if (! in_array($extension, config('ai.supported_extensions', []), true)) {
             return [
                 'kind' => 'unsupported',
                 'path' => $file->original_name ?: basename($path),
@@ -41,6 +44,7 @@ class SubmissionExtractor
             'doc' => $this->extractLegacyWord($path, $file),
             'xlsx' => $this->extractXlsx($path, $file),
             'xls' => $this->extractLegacyExcel($path, $file),
+            'rar', '7z' => $this->extractUnsupportedArchive($path, $file, $extension),
             'csv', 'tsv' => $this->extractDelimitedText($path, $file, $extension === 'tsv' ? "\t" : ','),
             default => $this->extractTextOrCode($path, $file, null),
         };
@@ -83,18 +87,19 @@ class SubmissionExtractor
      */
     private function extractDocx(string $path, File $file): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
-            throw new RuntimeException('Unable to open DOCX file.');
+            return $this->officeExtractionFailure('docx', $path, $file, 'Unable to open DOCX file.');
         }
 
         $documentXml = $zip->getFromName('word/document.xml');
         if ($documentXml === false) {
             $zip->close();
-            throw new RuntimeException('DOCX document.xml is missing.');
+
+            return $this->officeExtractionFailure('docx', $path, $file, 'DOCX document.xml is missing.');
         }
 
-        $text = trim(preg_replace('/\s+/u', ' ', strip_tags($documentXml)) ?? '');
+        $text = $this->extractDocxText($zip, $documentXml);
         $coreXml = $zip->getFromName('docProps/core.xml');
         $metadata = [];
         if ($coreXml !== false) {
@@ -108,6 +113,7 @@ class SubmissionExtractor
             'path' => $file->original_name ?: basename($path),
             'text_excerpt' => $this->truncate($this->normalizeUtf8($text), (int) config('ai.max_extracted_chars', 60000)),
             'metadata' => $metadata,
+            'notes' => trim($text) === '' ? ['DOCX text content is empty or could not be extracted.'] : [],
         ];
     }
 
@@ -132,23 +138,34 @@ class SubmissionExtractor
      */
     private function extractXlsx(string $path, File $file): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
-            throw new RuntimeException('Unable to open XLSX file.');
+            return $this->officeExtractionFailure('xlsx', $path, $file, 'Unable to open XLSX file.');
         }
 
         $sharedStrings = $this->extractSharedStrings($zip);
         $workbookXml = $zip->getFromName('xl/workbook.xml');
-        $sheetNames = $this->extractSheetNames($workbookXml ?: '');
+        $workbookRelationshipsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+        $sheetEntries = $this->extractWorkbookSheetEntries($workbookXml ?: '', $workbookRelationshipsXml ?: '');
         $sheets = [];
 
-        for ($index = 0; $index < count($sheetNames); $index++) {
-            $sheetXml = $zip->getFromName('xl/worksheets/sheet'.($index + 1).'.xml');
+        foreach ($sheetEntries as $index => $sheetEntry) {
+            $sheetXml = $zip->getFromName($sheetEntry['path']);
             if ($sheetXml === false) {
+                $fallbackSheetXml = $zip->getFromName('xl/worksheets/sheet'.($index + 1).'.xml');
+                if ($fallbackSheetXml === false) {
+                    continue;
+                }
+
+                $sheetXml = $fallbackSheetXml;
+            }
+
+            $parsedSheet = $this->parseSheetXml($sheetEntry['name'], $sheetXml, $sharedStrings);
+            if ($parsedSheet['row_count'] === 0 && $parsedSheet['preview_rows'] === []) {
                 continue;
             }
 
-            $sheets[] = $this->parseSheetXml($sheetNames[$index], $sheetXml, $sharedStrings);
+            $sheets[] = $parsedSheet;
         }
 
         $zip->close();
@@ -158,6 +175,24 @@ class SubmissionExtractor
             'path' => $file->original_name ?: basename($path),
             'sheet_count' => count($sheets),
             'sheets' => $sheets,
+            'notes' => count($sheets) === 0 ? ['XLSX workbook contains no extractable sheets.'] : [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function extractUnsupportedArchive(string $path, File $file, string $extension): array
+    {
+        return [
+            'kind' => 'unsupported_archive',
+            'path' => $file->original_name ?: basename($path),
+            'extension' => $extension,
+            'size_bytes' => is_file($path) ? filesize($path) : null,
+            'notes' => [
+                strtoupper($extension).' archives are accepted safely, but archive extraction is not available in v1. Upload ZIP for structured archive analysis.',
+            ],
+            'unsupported_files' => [$file->original_name ?: basename($path)],
         ];
     }
 
@@ -205,7 +240,7 @@ class SubmissionExtractor
      */
     private function extractZip(string $path, File $file): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
             throw new RuntimeException('Unable to open ZIP archive.');
         }
@@ -244,8 +279,9 @@ class SubmissionExtractor
                 $normalizedPath = str_replace('\\', '/', $name);
                 $tree[] = $normalizedPath;
                 $extension = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
-                if (!in_array($extension, $supportedExtensions, true)) {
+                if (! in_array($extension, $supportedExtensions, true)) {
                     $unsupportedFiles[] = $normalizedPath;
+
                     continue;
                 }
 
@@ -271,6 +307,7 @@ class SubmissionExtractor
                     'doc' => $this->extractLegacyWord($fullPath, $virtualFile),
                     'xlsx' => $this->extractXlsx($fullPath, $virtualFile),
                     'xls' => $this->extractLegacyExcel($fullPath, $virtualFile),
+                    'rar', '7z' => $this->extractUnsupportedArchive($fullPath, $virtualFile, $extension),
                     'csv', 'tsv' => $this->extractDelimitedText($fullPath, $virtualFile, $extension === 'tsv' ? "\t" : ','),
                     default => $this->extractTextOrCode($fullPath, $virtualFile, $normalizedPath),
                 };
@@ -324,6 +361,86 @@ class SubmissionExtractor
         }
     }
 
+    private function extractDocxText(ZipArchive $zip, string $documentXml): string
+    {
+        $parts = [];
+        $documentText = $this->extractWordprocessingText($documentXml);
+        if ($documentText !== '') {
+            $parts[] = $documentText;
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            $name = $stat['name'] ?? '';
+            if (! is_string($name) || ! preg_match('#^word/(?:header|footer|footnotes|endnotes|comments)\d*\.xml$#', $name)) {
+                continue;
+            }
+
+            $xml = $zip->getFromIndex($i);
+            if ($xml === false) {
+                continue;
+            }
+
+            $partText = $this->extractWordprocessingText($xml);
+            if ($partText !== '') {
+                $parts[] = $partText;
+            }
+        }
+
+        return $this->cleanExtractedText(implode("\n\n", $parts));
+    }
+
+    private function extractWordprocessingText(string $xml): string
+    {
+        $document = $this->loadXmlDocument($xml);
+        if (! $document) {
+            return $this->cleanExtractedText(strip_tags($xml));
+        }
+
+        $xpath = new DOMXPath($document);
+        $paragraphs = [];
+        $paragraphNodes = $xpath->query('//*[local-name() = "p"]');
+
+        if ($paragraphNodes === false) {
+            return $this->cleanExtractedText(strip_tags($xml));
+        }
+
+        foreach ($paragraphNodes as $paragraphNode) {
+            if (! $paragraphNode instanceof DOMElement) {
+                continue;
+            }
+
+            $pieces = [];
+            $textNodes = $xpath->query('.//*[local-name() = "t" or local-name() = "tab" or local-name() = "br" or local-name() = "cr"]', $paragraphNode);
+            if ($textNodes === false) {
+                continue;
+            }
+
+            foreach ($textNodes as $textNode) {
+                if (! $textNode instanceof DOMElement) {
+                    continue;
+                }
+
+                $pieces[] = match ($textNode->localName) {
+                    'tab' => "\t",
+                    'br', 'cr' => "\n",
+                    default => $textNode->textContent,
+                };
+            }
+
+            $paragraph = $this->cleanExtractedText(implode('', $pieces));
+            if ($paragraph !== '') {
+                $paragraphs[] = $paragraph;
+            }
+        }
+
+        if ($paragraphs === []) {
+            return $this->cleanExtractedText($document->textContent);
+        }
+
+        return implode("\n", $paragraphs);
+    }
+
     /**
      * @return array<int, string>
      */
@@ -334,43 +451,124 @@ class SubmissionExtractor
             return [];
         }
 
-        try {
-            $document = new SimpleXMLElement($xml);
-            $strings = [];
-            foreach ($document->si as $item) {
-                $strings[] = trim((string) $item->t);
-            }
-
-            return $strings;
-        } catch (\Throwable) {
+        $document = $this->loadXmlDocument($xml);
+        if (! $document) {
             return [];
         }
+
+        $xpath = new DOMXPath($document);
+        $items = $xpath->query('//*[local-name() = "si"]');
+        if ($items === false) {
+            return [];
+        }
+
+        $strings = [];
+        foreach ($items as $item) {
+            if (! $item instanceof DOMElement) {
+                continue;
+            }
+
+            $strings[] = trim($this->collectDescendantText($item, 't'));
+        }
+
+        return $strings;
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, array{name: string, path: string}>
      */
-    private function extractSheetNames(string $xml): array
+    private function extractWorkbookSheetEntries(string $workbookXml, string $relationshipsXml): array
+    {
+        if ($workbookXml === '') {
+            return [];
+        }
+
+        $document = $this->loadXmlDocument($workbookXml);
+        if (! $document) {
+            return [];
+        }
+
+        $relationships = $this->extractWorkbookRelationships($relationshipsXml);
+        $xpath = new DOMXPath($document);
+        $sheetNodes = $xpath->query('//*[local-name() = "sheets"]/*[local-name() = "sheet"]');
+        if ($sheetNodes === false) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($sheetNodes as $index => $sheetNode) {
+            if (! $sheetNode instanceof DOMElement) {
+                continue;
+            }
+
+            $relationshipId = $sheetNode->getAttributeNS(
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+                'id',
+            ) ?: $sheetNode->getAttribute('r:id');
+
+            $target = $relationships[$relationshipId] ?? 'worksheets/sheet'.($index + 1).'.xml';
+            $entries[] = [
+                'name' => $sheetNode->getAttribute('name') ?: 'Sheet '.($index + 1),
+                'path' => $this->normalizeWorkbookTargetPath($target),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function extractWorkbookRelationships(string $xml): array
     {
         if ($xml === '') {
             return [];
         }
 
-        try {
-            $document = new SimpleXMLElement($xml);
-            $names = [];
-            foreach ($document->sheets->sheet as $sheet) {
-                $names[] = (string) $sheet['name'];
-            }
-
-            return $names;
-        } catch (\Throwable) {
+        $document = $this->loadXmlDocument($xml);
+        if (! $document) {
             return [];
         }
+
+        $xpath = new DOMXPath($document);
+        $relationshipNodes = $xpath->query('//*[local-name() = "Relationship"]');
+        if ($relationshipNodes === false) {
+            return [];
+        }
+
+        $relationships = [];
+        foreach ($relationshipNodes as $relationshipNode) {
+            if (! $relationshipNode instanceof DOMElement) {
+                continue;
+            }
+
+            $id = $relationshipNode->getAttribute('Id');
+            $target = $relationshipNode->getAttribute('Target');
+            if ($id !== '' && $target !== '') {
+                $relationships[$id] = $target;
+            }
+        }
+
+        return $relationships;
+    }
+
+    private function normalizeWorkbookTargetPath(string $target): string
+    {
+        $target = str_replace('\\', '/', $target);
+
+        if (str_starts_with($target, '/')) {
+            return ltrim($target, '/');
+        }
+
+        if (str_starts_with($target, 'xl/')) {
+            return $target;
+        }
+
+        return 'xl/'.ltrim($target, '/');
     }
 
     /**
-     * @param array<int, string> $sharedStrings
+     * @param  array<int, string>  $sharedStrings
      * @return array<string, mixed>
      */
     private function parseSheetXml(string $sheetName, string $xml, array $sharedStrings): array
@@ -380,32 +578,69 @@ class SubmissionExtractor
         $maxColumns = (int) config('ai.max_sheet_preview_columns', 12);
         $rowCount = 0;
 
-        try {
-            $document = new SimpleXMLElement($xml);
-            foreach ($document->sheetData->row as $row) {
-                $rowCount++;
-                if (count($previewRows) >= $maxRows) {
+        $document = $this->loadXmlDocument($xml);
+        if (! $document) {
+            return [
+                'name' => $sheetName,
+                'row_count' => 0,
+                'preview_rows' => [],
+            ];
+        }
+
+        $xpath = new DOMXPath($document);
+        $rowNodes = $xpath->query('//*[local-name() = "sheetData"]/*[local-name() = "row"]');
+        if ($rowNodes === false) {
+            return [
+                'name' => $sheetName,
+                'row_count' => 0,
+                'preview_rows' => [],
+            ];
+        }
+
+        foreach ($rowNodes as $rowNode) {
+            if (! $rowNode instanceof DOMElement) {
+                continue;
+            }
+
+            $rowCount++;
+            if (count($previewRows) >= $maxRows) {
+                continue;
+            }
+
+            $parsedRow = [];
+            $cellNodes = $xpath->query('./*[local-name() = "c"]', $rowNode);
+            if ($cellNodes === false) {
+                continue;
+            }
+
+            foreach ($cellNodes as $cellNode) {
+                if (! $cellNode instanceof DOMElement) {
                     continue;
                 }
 
-                $parsedRow = [];
-                foreach ($row->c as $cell) {
+                $columnIndex = $this->columnIndexFromCellReference($cellNode->getAttribute('r'));
+                if ($columnIndex !== null && $columnIndex >= $maxColumns) {
+                    continue;
+                }
+
+                $value = $this->extractSpreadsheetCellValue($cellNode, $sharedStrings);
+                if ($columnIndex === null) {
                     if (count($parsedRow) >= $maxColumns) {
                         break;
                     }
 
-                    $value = (string) $cell->v;
-                    $type = (string) ($cell['t'] ?? '');
-                    if ($type === 's' && isset($sharedStrings[(int) $value])) {
-                        $value = $sharedStrings[(int) $value];
-                    }
                     $parsedRow[] = $value;
+                } else {
+                    $parsedRow[$columnIndex] = $value;
                 }
-
-                $previewRows[] = $parsedRow;
             }
-        } catch (\Throwable) {
-            $previewRows = [];
+
+            if ($parsedRow !== []) {
+                ksort($parsedRow);
+                $previewRows[] = $this->compactSpreadsheetRow($parsedRow, $maxColumns);
+            } else {
+                $previewRows[] = [];
+            }
         }
 
         return [
@@ -416,12 +651,156 @@ class SubmissionExtractor
     }
 
     /**
-     * @param array<int, string> $lines
+     * @param  array<int, string>  $sharedStrings
+     */
+    private function extractSpreadsheetCellValue(DOMElement $cell, array $sharedStrings): string
+    {
+        $type = $cell->getAttribute('t');
+        $value = trim($this->firstDescendantText($cell, 'v'));
+
+        if ($type === 's') {
+            return $sharedStrings[(int) $value] ?? '';
+        }
+
+        if ($type === 'inlineStr' || ($value === '' && $this->hasDescendant($cell, 'is'))) {
+            return trim($this->collectDescendantText($cell, 't'));
+        }
+
+        return $value;
+    }
+
+    private function columnIndexFromCellReference(string $cellReference): ?int
+    {
+        if ($cellReference === '' || preg_match('/^([A-Z]+)/i', $cellReference, $matches) !== 1) {
+            return null;
+        }
+
+        $column = strtoupper($matches[1]);
+        $index = 0;
+        for ($i = 0; $i < strlen($column); $i++) {
+            $index = ($index * 26) + (ord($column[$i]) - ord('A') + 1);
+        }
+
+        return $index - 1;
+    }
+
+    /**
+     * @param  array<int, string>  $row
+     * @return array<int, string>
+     */
+    private function compactSpreadsheetRow(array $row, int $maxColumns): array
+    {
+        $compacted = [];
+        for ($index = 0; $index < $maxColumns; $index++) {
+            if (! array_key_exists($index, $row)) {
+                continue;
+            }
+
+            $compacted[] = $row[$index];
+        }
+
+        while ($compacted !== [] && end($compacted) === '') {
+            array_pop($compacted);
+        }
+
+        return $compacted;
+    }
+
+    private function firstDescendantText(DOMElement $element, string $localName): string
+    {
+        foreach ($element->getElementsByTagName('*') as $node) {
+            if ($node instanceof DOMElement && $node->localName === $localName) {
+                return $node->textContent;
+            }
+        }
+
+        return '';
+    }
+
+    private function collectDescendantText(DOMElement $element, string $localName): string
+    {
+        $parts = [];
+        foreach ($element->getElementsByTagName('*') as $node) {
+            if ($node instanceof DOMElement && $node->localName === $localName) {
+                $parts[] = $node->textContent;
+            }
+        }
+
+        return implode('', $parts);
+    }
+
+    private function hasDescendant(DOMElement $element, string $localName): bool
+    {
+        foreach ($element->getElementsByTagName('*') as $node) {
+            if ($node instanceof DOMElement && $node->localName === $localName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function loadXmlDocument(string $xml): ?DOMDocument
+    {
+        if (trim($xml) === '') {
+            return null;
+        }
+
+        $previous = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+
+        $document = new DOMDocument('1.0', 'UTF-8');
+        $loaded = $document->loadXML($xml, LIBXML_NONET | LIBXML_COMPACT);
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        return $loaded ? $document : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function officeExtractionFailure(string $kind, string $path, File $file, string $message): array
+    {
+        $result = [
+            'kind' => $kind,
+            'path' => $file->original_name ?: basename($path),
+            'notes' => [$message],
+            'unsupported_files' => [$file->original_name ?: basename($path)],
+        ];
+
+        if ($kind === 'docx') {
+            $result['text_excerpt'] = '';
+            $result['metadata'] = [];
+        }
+
+        if ($kind === 'xlsx') {
+            $result['sheet_count'] = 0;
+            $result['sheets'] = [];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<int, string>  $lines
      */
     private function summarizeLines(array $lines): string
     {
         $meaningful = array_values(array_filter(array_map('trim', $lines), static fn ($line) => $line !== ''));
+
         return $this->truncate(implode("\n", array_slice($meaningful, 0, 20)), 1200);
+    }
+
+    private function cleanExtractedText(string $text): string
+    {
+        $text = $this->normalizeUtf8($text);
+        $text = str_replace(["\xC2\xA0", "\r\n", "\r"], [' ', "\n", "\n"], $text);
+        $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+        $text = preg_replace("/\n{3,}/u", "\n\n", $text) ?? $text;
+
+        return trim($text);
     }
 
     private function normalizeUtf8(string $content): string
