@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File as LocalFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -39,6 +40,13 @@ class ServerCriterionEvaluator
         'собер',
         'синтакс',
         'линт',
+    ];
+
+    private const CONTROLLER_IDENTITY_PATTERNS = [
+        '/(?:^|\s)(?:файл|класс)\s*(?:-|:)?\s*(?:является\s+)?(?:laravel[-\s]*)?контроллер(?:ом)?\b/u',
+        '/(?:^|\s)(?:file|class)\s*(?:-|:)?\s*(?:is\s+)?(?:a\s+)?(?:laravel\s+)?controller\b/u',
+        '/\b(?:является|быть|is|be|extends)\s+(?:a\s+)?(?:laravel\s+)?controller\b/u',
+        '/\bclass\s+extends\s+controller\b/u',
     ];
 
     private const REQUIRED_CRUD_METHODS = [
@@ -99,6 +107,10 @@ class ServerCriterionEvaluator
 
         if ($this->isCrudCriterion($criterion)) {
             return $this->evaluateCrudCriterion($file, $criterion);
+        }
+
+        if ($this->isControllerCriterion($criterion)) {
+            return $this->evaluateControllerCriterion($file, $criterion);
         }
 
         return null;
@@ -170,6 +182,22 @@ class ServerCriterionEvaluator
         }
 
         return $mentionedMethods >= 3 && preg_match('/метод|method|контроллер|controller/u', $text) === 1;
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function isControllerCriterion(array $criterion): bool
+    {
+        $text = $this->normalizeCriterionText($criterion);
+
+        foreach (self::CONTROLLER_IDENTITY_PATTERNS as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -284,6 +312,55 @@ class ServerCriterionEvaluator
             $criterion,
             $evidence !== [] ? $evidence : ['Не удалось подтвердить наличие базовых CRUD-методов.'],
             'Не все базовые CRUD-методы найдены в файле.',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $criterion
+     */
+    private function evaluateControllerCriterion(File $file, array $criterion): CriterionResult
+    {
+        $context = $this->loadStructuralFileContext($file);
+        if (is_string($context)) {
+            return $this->unsupportedResult($criterion, $context);
+        }
+
+        $filename = (string) ($file->original_name ?: basename($context['path']));
+        $className = $this->extractFirstClassName($context['content']);
+        $parentClass = $this->extractParentClassName($context['content']);
+        $namespace = $context['extension'] === 'php'
+            ? $this->extractPhpNamespace($context['content'])
+            : null;
+
+        $classLooksController = $className !== null && preg_match('/Controller$/i', $className) === 1;
+        $parentLooksController = $parentClass !== null && preg_match('/(?:^|\\\\)Controller$/i', $parentClass) === 1;
+        $namespaceLooksController = $namespace !== null && str_starts_with($namespace, 'App\\Http\\Controllers');
+        $filenameLooksController = preg_match('/Controller\.[A-Za-z0-9]+$/i', $filename) === 1;
+
+        $evidence = [];
+        if ($className !== null) {
+            $evidence[] = "class={$className}.";
+        }
+        if ($parentClass !== null) {
+            $evidence[] = "extends={$parentClass}.";
+        }
+        if ($namespace !== null) {
+            $evidence[] = "namespace={$namespace}.";
+        }
+        $evidence[] = "filename={$filename}.";
+
+        if ($classLooksController && ($parentLooksController || $namespaceLooksController || $filenameLooksController)) {
+            return $this->passedResult(
+                $criterion,
+                $evidence,
+                'Файл распознан как контроллер серверной структурной проверкой.',
+            );
+        }
+
+        return $this->failedResult(
+            $criterion,
+            $evidence !== [] ? $evidence : ['Не удалось найти признаки контроллера в файле.'],
+            'Файл не удалось подтвердить как контроллер серверной структурной проверкой.',
         );
     }
 
@@ -608,7 +685,17 @@ class ServerCriterionEvaluator
     {
         $process = new Process($command);
         $process->setTimeout((int) config('ai.execution.timeout', 15));
-        $process->run();
+        try {
+            $process->run();
+        } catch (ProcessTimedOutException) {
+            $timeout = (int) config('ai.execution.timeout', 15);
+
+            return $this->failedResult(
+                $criterion,
+                ['Process exceeded timeout of '.$timeout.' seconds: '.$this->truncate(implode(' ', $command))],
+                'Серверная проверка компиляции превысила лимит времени.',
+            );
+        }
 
         $output = trim($process->getOutput()."\n".$process->getErrorOutput());
         if ($process->isSuccessful()) {
@@ -729,7 +816,11 @@ XML;
     {
         $process = new Process([$dotnet, '--version']);
         $process->setTimeout((int) config('ai.execution.timeout', 15));
-        $process->run();
+        try {
+            $process->run();
+        } catch (ProcessTimedOutException) {
+            return 'net8.0';
+        }
 
         $version = trim($process->getOutput());
         if (preg_match('/^(\d+)/', $version, $matches) === 1) {
@@ -933,6 +1024,37 @@ XML;
         ksort($callables);
 
         return array_values($callables);
+    }
+
+    private function extractFirstClassName(string $content): ?string
+    {
+        if (preg_match('/\bclass\s+(?P<class>[A-Za-z_][A-Za-z0-9_]*)\b/u', $content, $matches) !== 1) {
+            return null;
+        }
+
+        return (string) $matches['class'];
+    }
+
+    private function extractParentClassName(string $content): ?string
+    {
+        if (preg_match(
+            '/\bclass\s+[A-Za-z_][A-Za-z0-9_]*\s+extends\s+(?P<parent>\\\\?[A-Za-z_\\\\][A-Za-z0-9_\\\\]*)\b/u',
+            $content,
+            $matches,
+        ) !== 1) {
+            return null;
+        }
+
+        return ltrim((string) $matches['parent'], '\\');
+    }
+
+    private function extractPhpNamespace(string $content): ?string
+    {
+        if (preg_match('/^\s*namespace\s+(?P<namespace>[A-Za-z_\\\\][A-Za-z0-9_\\\\]*)\s*;/mu', $content, $matches) !== 1) {
+            return null;
+        }
+
+        return (string) $matches['namespace'];
     }
 
     private function isIgnorableHtmlParseError(\LibXMLError $error): bool

@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\AI\Services\ServerCriterionEvaluator;
 use App\Models\File;
+use Illuminate\Support\Facades\File as LocalFile;
 use Illuminate\Support\Facades\Storage;
 use ReflectionClass;
 use Tests\TestCase;
@@ -129,6 +130,63 @@ PHP);
         $this->assertSame('passed', $resultsById['crud']->status);
         $this->assertSame('server', $resultsById['crud']->source);
         $this->assertStringContainsString('index, store, show, update, destroy', $resultsById['crud']->evidence[0]);
+    }
+
+    public function test_evaluates_course_controller_file_against_requested_criteria_server_side(): void
+    {
+        Storage::disk('public')->put(
+            'fixtures/CourseController.php',
+            LocalFile::get(base_path('app/Http/Controllers/CourseController.php')),
+        );
+
+        $file = new File([
+            'path' => 'fixtures/CourseController.php',
+            'original_name' => 'CourseController.php',
+            'extension' => 'php',
+        ]);
+
+        $criteria = [
+            [
+                'id' => 'compile_file',
+                'label' => 'Файл компилируется',
+                'description' => 'Проверь, что файл проходит серверную компиляцию.',
+                'checks' => ['Скомпилировать файл'],
+                'weight' => 40,
+            ],
+            [
+                'id' => 'is_controller',
+                'label' => 'Файл - контроллер',
+                'description' => 'Проверь, что файл является Laravel-контроллером.',
+                'checks' => ['файл контроллер', 'class extends Controller'],
+                'weight' => 30,
+            ],
+            [
+                'id' => 'method_count',
+                'label' => 'Содержит более 6 методов контроллера',
+                'description' => 'Проверь количество методов контроллера.',
+                'checks' => ['methods > 6'],
+                'weight' => 30,
+            ],
+        ];
+
+        $result = app(ServerCriterionEvaluator::class)->evaluate($file, $criteria);
+        $resultsById = [];
+        foreach ($result['criterion_results'] as $criterionResult) {
+            $resultsById[$criterionResult->criterionId] = $criterionResult;
+        }
+
+        $this->assertCount(3, $result['criterion_results']);
+        $this->assertCount(0, $result['llm_criteria']);
+        $this->assertSame([], $result['unsupported_checks']);
+        $this->assertSame('passed', $resultsById['compile_file']->status);
+        $this->assertSame('server', $resultsById['compile_file']->source);
+        $this->assertSame('passed', $resultsById['is_controller']->status);
+        $this->assertSame('server', $resultsById['is_controller']->source);
+        $this->assertStringContainsString('class=CourseController', implode("\n", $resultsById['is_controller']->evidence));
+        $this->assertStringContainsString('namespace=App\Http\Controllers', implode("\n", $resultsById['is_controller']->evidence));
+        $this->assertSame('passed', $resultsById['method_count']->status);
+        $this->assertSame('server', $resultsById['method_count']->source);
+        $this->assertStringContainsString('function_like_count=', $resultsById['method_count']->evidence[0]);
     }
 
     public function test_validates_html_markup_without_external_runtime(): void
