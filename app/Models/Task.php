@@ -71,4 +71,19 @@ class Task extends Model
             ->withPivot('assigned_by')
             ->withTimestamps();
     }
+
+    public function peerReviewSetting(): HasOne
+    {
+        return $this->hasOne(PeerReviewSetting::class);
+    }
+
+    public function peerReviewAssignments(): HasMany
+    {
+        return $this->hasMany(PeerReviewAssignment::class);
+    }
+
+    public function peerReviewResults(): HasMany
+    {
+        return $this->hasMany(PeerReviewResult::class);
+    }
 }

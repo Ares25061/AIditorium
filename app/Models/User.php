@@ -137,6 +137,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(AiReviewRun::class, 'requested_by');
     }
 
+    public function peerReviewAssignments(): HasMany
+    {
+        return $this->hasMany(PeerReviewAssignment::class, 'reviewer_id');
+    }
+
+    public function peerReviewResults(): HasMany
+    {
+        return $this->hasMany(PeerReviewResult::class, 'reviewer_id');
+    }
+
 
     public function getAvatarUrlAttribute(): ?string
     {

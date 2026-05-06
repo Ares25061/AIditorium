@@ -419,6 +419,86 @@ class ControllerRegressionTest extends TestCase
             ->assertCreated();
     }
 
+    public function test_peer_review_assignments_are_visible_to_assigned_student_and_results_are_saved(): void
+    {
+        ['teacher' => $teacher, 'student' => $student, 'course' => $course, 'task' => $task] = $this->createCourseContext();
+        $secondStudent = $this->createUser();
+        $secondStudent->courses()->attach($course->id, ['role' => 'student']);
+
+        $firstSubmission = File::create([
+            'path' => 'submissions/student-one.txt',
+            'original_name' => 'student-one.txt',
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+            'size_bytes' => 12,
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'type' => 'submission',
+            'is_public' => false,
+        ]);
+        $secondSubmission = File::create([
+            'path' => 'submissions/student-two.txt',
+            'original_name' => 'student-two.txt',
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+            'size_bytes' => 12,
+            'user_id' => $secondStudent->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'type' => 'submission',
+            'is_public' => false,
+        ]);
+
+        $this->actingAs($teacher, 'api')
+            ->postJson("/api/task/{$task->id}/peer-review/assignments", [
+                'assignments' => [
+                    [
+                        'id' => 'demo:one',
+                        'reviewer_id' => $student->id,
+                        'target_user_id' => $secondStudent->id,
+                        'file_id' => $secondSubmission->id,
+                        'blind' => true,
+                        'allow_score' => true,
+                        'max_score' => 100,
+                    ],
+                    [
+                        'id' => 'demo:two',
+                        'reviewer_id' => $secondStudent->id,
+                        'target_user_id' => $student->id,
+                        'file_id' => $firstSubmission->id,
+                        'blind' => true,
+                        'allow_score' => true,
+                        'max_score' => 100,
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonCount(2, 'assignments');
+
+        $assignmentId = $this->actingAs($student, 'api')
+            ->getJson('/api/peer-review/assignments')
+            ->assertOk()
+            ->assertJsonCount(1, 'assignments')
+            ->assertJsonPath('assignments.0.target_user_id', null)
+            ->json('assignments.0.id');
+
+        $this->actingAs($student, 'api')
+            ->postJson('/api/peer-review/results', [
+                'assignment_id' => $assignmentId,
+                'grade' => 88,
+                'comment' => 'Контроллер работает корректно, но валидацию можно вынести в FormRequest.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('result.grade', 88);
+
+        $this->actingAs($teacher, 'api')
+            ->getJson("/api/task/{$task->id}/peer-review/results")
+            ->assertOk()
+            ->assertJsonCount(1, 'results')
+            ->assertJsonPath('results.0.target_user_id', $secondStudent->id);
+    }
+
     private function createUser(): User
     {
         $userRole = Role::where('name', 'user')->firstOrFail();
