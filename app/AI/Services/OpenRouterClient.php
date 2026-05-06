@@ -156,11 +156,11 @@ class OpenRouterClient implements LLMClientInterface
         $reasoning = [];
         $effort = trim((string) config('ai.openrouter.reasoning_effort', 'none'));
 
-        if ($effort !== '') {
+        if ($effort !== '' && strcasecmp($effort, 'none') !== 0) {
             $reasoning['effort'] = $effort;
         }
 
-        if ((bool) config('ai.openrouter.exclude_reasoning', true)) {
+        if ($reasoning !== [] && (bool) config('ai.openrouter.exclude_reasoning', true)) {
             $reasoning['exclude'] = true;
         }
 
@@ -319,7 +319,18 @@ class OpenRouterClient implements LLMClientInterface
 
         $status = $exception->response?->status();
 
-        return $status === null || $status === 429 || $status >= 500;
+        if ($status === null || $status === 429 || $status >= 500) {
+            return true;
+        }
+
+        $message = mb_strtolower((string) (
+            $exception->response?->json('error.message')
+            ?? $exception->response?->body()
+            ?? $exception->getMessage()
+        ), 'UTF-8');
+
+        return in_array($status, [400, 422], true)
+            && preg_match('/response_format|json[_\s-]*mode|reasoning|unsupported parameter|unsupported param|invalid parameter|invalid param/u', $message) === 1;
     }
 
     private function buildEmptyCompletionException(Response $response, int $attempt, int $maxAttempts): RuntimeException
