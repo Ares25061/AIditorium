@@ -21,7 +21,7 @@ class UpdateTaskReviewProfileRequest extends FormRequest
             'rubric.*.label' => 'required|string|max:255',
             'rubric.*.description' => 'required|string|max:5000',
             'rubric.*.instructions' => 'sometimes|nullable|string|max:5000',
-            'rubric.*.weight' => 'sometimes|nullable|integer|min:0|max:100',
+            'rubric.*.weight' => 'sometimes|nullable|integer|min:0|max:10000',
             'rubric.*.checks' => 'sometimes|array',
             'rubric.*.checks.*' => 'required|string|max:1000',
             'custom_prompt' => 'sometimes|nullable|string|max:10000',

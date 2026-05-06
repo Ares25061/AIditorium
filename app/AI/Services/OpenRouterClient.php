@@ -5,6 +5,7 @@ namespace App\AI\Services;
 use App\AI\Contracts\LLMClientInterface;
 use App\AI\DTO\CompiledReviewPayload;
 use App\AI\DTO\ReviewResult;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
@@ -37,6 +38,16 @@ class OpenRouterClient implements LLMClientInterface
 
             try {
                 $response = $this->sendRequest($url, $apiKey, $requestPayload);
+            } catch (ConnectionException $exception) {
+                $lastException = $this->buildConnectionException($exception, $attempt, $maxAttempts);
+
+                if ($attempt >= $maxAttempts) {
+                    throw $lastException;
+                }
+
+                $this->waitBeforeRetry($attempt);
+
+                continue;
             } catch (RequestException $exception) {
                 $lastException = $this->buildRequestException($exception);
 
@@ -163,6 +174,7 @@ class OpenRouterClient implements LLMClientInterface
     {
         return $this->http
             ->timeout((int) config('ai.timeout', 120))
+            ->connectTimeout((int) config('ai.connect_timeout', 20))
             ->withHeaders([
                 'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
@@ -289,6 +301,14 @@ class OpenRouterClient implements LLMClientInterface
             ?? $exception->getMessage();
 
         return new RuntimeException("OpenRouter request failed: {$message}", previous: $exception);
+    }
+
+    private function buildConnectionException(ConnectionException $exception, int $attempt, int $maxAttempts): RuntimeException
+    {
+        return new RuntimeException(
+            "OpenRouter connection failed after attempt {$attempt}/{$maxAttempts}: {$exception->getMessage()}",
+            previous: $exception,
+        );
     }
 
     private function shouldRetryRequestException(RequestException $exception, int $attempt, int $maxAttempts): bool

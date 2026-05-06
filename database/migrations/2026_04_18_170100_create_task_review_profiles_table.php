@@ -15,7 +15,7 @@ return new class extends Migration
                 ->constrained('tasks')
                 ->onUpdate('cascade')
                 ->onDelete('cascade');
-            $table->boolean('enabled')->default(false);
+            $table->boolean('enabled')->default(true);
             $table->json('rubric_json')->nullable();
             $table->longText('custom_prompt')->nullable();
             $table->json('supported_formats_json')->nullable();

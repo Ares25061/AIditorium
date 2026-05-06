@@ -12,6 +12,7 @@ use App\Models\Discipline;
 use App\Models\Grade;
 use App\Models\Role;
 use App\Models\Task;
+use App\Models\TaskReviewProfile;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,6 +174,34 @@ class AiReviewFlowTest extends TestCase
         $this->actingAs($student, 'api')
             ->getJson("/api/ai-review/{$reviewId}")
             ->assertForbidden();
+    }
+
+    public function test_teacher_can_queue_ai_review_with_default_profile(): void
+    {
+        ['teacher' => $teacher, 'student' => $student, 'task' => $task] = $this->createCourseContext();
+
+        $submissionResponse = $this->actingAs($student, 'api')->post('/api/task/submit', [
+            'task_id' => $task->id,
+            'file' => UploadedFile::fake()->createWithContent('solution.txt', 'Ответ студента.'),
+        ]);
+
+        $submissionId = (int) $submissionResponse->assertCreated()->json('submission.id');
+
+        $queueResponse = $this->actingAs($teacher, 'api')->postJson("/api/task/{$task->id}/submission/{$submissionId}/ai-review", [
+            'force_recheck' => true,
+        ]);
+
+        $queueResponse->assertStatus(202)
+            ->assertJsonPath('review.status', 'queued');
+
+        $profile = TaskReviewProfile::where('task_id', $task->id)->firstOrFail();
+
+        $this->assertTrue($profile->enabled);
+        $this->assertCount(3, $profile->rubric_json);
+        $this->assertSame(100, array_sum(array_column($profile->rubric_json, 'weight')));
+
+        $review = AiReviewRun::findOrFail((int) $queueResponse->json('review.id'))->fresh();
+        $this->assertSame('completed', $review->status->value);
     }
 
     /**

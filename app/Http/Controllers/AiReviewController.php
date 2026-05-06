@@ -9,6 +9,7 @@ use App\Models\AiReviewRun;
 use App\Models\File;
 use App\Models\Grade;
 use App\Models\Task;
+use App\Models\TaskReviewProfile;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,9 +27,10 @@ class AiReviewController extends Controller
             return response()->json(['error' => __('messages.ai_review_invalid_submission')], 422);
         }
 
-        $profile = $task->reviewProfile;
-        if (!$profile || !$profile->enabled) {
-            return response()->json(['error' => __('messages.ai_review_profile_missing')], 422);
+        $profile = $this->getOrCreateReviewProfile($task);
+        if (!$profile->enabled) {
+            $profile->enabled = true;
+            $profile->save();
         }
 
         $extension = strtolower((string) ($file->extension ?: pathinfo((string) ($file->original_name ?: $file->path), PATHINFO_EXTENSION)));
@@ -173,5 +175,54 @@ class AiReviewController extends Controller
         }
 
         throw new RuntimeException("Unsupported AI dispatch mode [{$dispatchMode}].");
+    }
+
+    private function getOrCreateReviewProfile(Task $task): TaskReviewProfile
+    {
+        /** @var TaskReviewProfile $profile */
+        $profile = $task->reviewProfile()->firstOrCreate(
+            ['task_id' => $task->id],
+            [
+                'enabled' => true,
+                'rubric_json' => $this->defaultRubric($task),
+                'custom_prompt' => null,
+                'supported_formats_json' => config('ai.supported_extensions', []),
+                'version' => 1,
+            ],
+        );
+
+        return $profile;
+    }
+
+    private function defaultRubric(Task $task): array
+    {
+        $maxScore = max(1, (int) ($task->scores ?: 100));
+        $requirements = (int) round($maxScore * 0.4);
+        $quality = (int) round($maxScore * 0.4);
+        $independence = max(0, $maxScore - $requirements - $quality);
+
+        return [
+            [
+                'id' => 'requirements',
+                'label' => 'Соответствие заданию',
+                'description' => 'Проверь, насколько работа решает поставленную задачу и учитывает требования из описания.',
+                'checks' => [],
+                'weight' => $requirements,
+            ],
+            [
+                'id' => 'quality',
+                'label' => 'Качество выполнения',
+                'description' => 'Оцени структуру, аккуратность, аргументацию и качество реализации.',
+                'checks' => [],
+                'weight' => $quality,
+            ],
+            [
+                'id' => 'independence',
+                'label' => 'Самостоятельность и выводы',
+                'description' => 'Проверь, есть ли в работе собственные выводы, объяснения и осмысленное выполнение.',
+                'checks' => [],
+                'weight' => $independence,
+            ],
+        ];
     }
 }

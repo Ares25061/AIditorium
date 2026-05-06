@@ -16,6 +16,38 @@ class TaskReviewProfileController extends Controller
         return config('ai.supported_extensions', ['docx', 'xlsx', 'csv', 'tsv', 'zip', 'php', 'js', 'ts', 'py', 'java', 'cs']);
     }
 
+    private function defaultRubric(Task $task): array
+    {
+        $maxScore = max(1, (int) ($task->scores ?: 100));
+        $requirements = (int) round($maxScore * 0.4);
+        $quality = (int) round($maxScore * 0.4);
+        $independence = max(0, $maxScore - $requirements - $quality);
+
+        return [
+            [
+                'id' => 'requirements',
+                'label' => 'Соответствие заданию',
+                'description' => 'Проверь, насколько работа решает поставленную задачу и учитывает требования из описания.',
+                'checks' => [],
+                'weight' => $requirements,
+            ],
+            [
+                'id' => 'quality',
+                'label' => 'Качество выполнения',
+                'description' => 'Оцени структуру, аккуратность, аргументацию и качество реализации.',
+                'checks' => [],
+                'weight' => $quality,
+            ],
+            [
+                'id' => 'independence',
+                'label' => 'Самостоятельность и выводы',
+                'description' => 'Проверь, есть ли в работе собственные выводы, объяснения и осмысленное выполнение.',
+                'checks' => [],
+                'weight' => $independence,
+            ],
+        ];
+    }
+
     public function show(Task $task)
     {
         $this->authorize('manage-review-profile', $task);
@@ -25,8 +57,8 @@ class TaskReviewProfileController extends Controller
         return response()->json([
             'task_id' => $task->id,
             'profile' => [
-                'enabled' => $profile?->enabled ?? false,
-                'rubric' => $profile?->rubric_json ?? [],
+                'enabled' => $profile?->enabled ?? true,
+                'rubric' => $profile?->rubric_json ?? $this->defaultRubric($task),
                 'custom_prompt' => $profile?->custom_prompt,
                 'supported_formats' => $profile?->supported_formats_json ?? $this->defaultSupportedFormats(),
                 'version' => $profile?->version ?? 1,

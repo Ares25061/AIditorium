@@ -21,9 +21,26 @@ class ProcessAiReviewRunJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries;
+
+    public int $timeout;
+
     public function __construct(
         public readonly int $reviewRunId,
     ) {
+        $this->tries = max(1, (int) config('ai.job_tries', 3));
+        $this->timeout = max(60, (int) config('ai.job_timeout', 1800));
+    }
+
+    public function backoff(): array
+    {
+        $backoff = (string) config('ai.job_backoff', '30,90,180');
+        $values = array_values(array_filter(
+            array_map(static fn (string $value) => (int) trim($value), explode(',', $backoff)),
+            static fn (int $value) => $value >= 0,
+        ));
+
+        return $values !== [] ? $values : [30, 90, 180];
     }
 
     public function handle(
@@ -131,6 +148,16 @@ class ProcessAiReviewRunJob implements ShouldQueue
                 'finished_at' => now(),
             ]);
         } catch (Throwable $exception) {
+            if ($this->shouldRetryException($exception) && $this->attempts() < $this->tries) {
+                $reviewRun->update([
+                    'status' => ReviewRunStatus::QUEUED,
+                    'error_message' => $exception->getMessage(),
+                    'finished_at' => null,
+                ]);
+
+                throw $exception;
+            }
+
             $reviewRun->update([
                 'status' => ReviewRunStatus::FAILED,
                 'error_message' => $exception->getMessage(),
@@ -139,5 +166,13 @@ class ProcessAiReviewRunJob implements ShouldQueue
 
             throw $exception;
         }
+    }
+
+    private function shouldRetryException(Throwable $exception): bool
+    {
+        return preg_match(
+            '/OpenRouter connection failed|cURL error 28|timed out|timeout|too many requests|429|5\d\d/i',
+            $exception->getMessage(),
+        ) === 1;
     }
 }
