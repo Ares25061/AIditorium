@@ -14,6 +14,7 @@ return [
         'grade' => 'Grade',
         'taskreviewprofile' => 'AI Review Profiles',
         'aireview' => 'AI Review',
+        'peerreview' => 'Peer Review',
     ],
     'user' => [
         'index' => ['summary' => 'List users', 'description' => 'Get a paginated list of all users (for admin).'],
@@ -120,5 +121,15 @@ return [
         'index' => ['summary' => 'Task AI reviews', 'description' => 'Get all AI review runs for a task.'],
         'show' => ['summary' => 'Get AI review', 'description' => 'Get detailed information for a single AI review run.'],
         'applyGrade' => ['summary' => 'Apply AI grade', 'description' => 'Persist the recommended AI score as a grade after explicit teacher confirmation.'],
+    ],
+
+    'peerreview' => [
+        'myAssignments' => ['summary' => 'My peer review assignments', 'description' => 'Get works assigned to the current student for peer review.'],
+        'saveResult' => ['summary' => 'Save peer review result', 'description' => 'Save the student grade and comment for an assigned work.'],
+        'showSettings' => ['summary' => 'Peer review settings', 'description' => 'Get current peer review settings for a task.'],
+        'updateSettings' => ['summary' => 'Update peer review settings', 'description' => 'Update peer review mode, review count, score permission, and instructions.'],
+        'taskAssignments' => ['summary' => 'Task peer review assignments', 'description' => 'Get all peer review assignments for the selected task.'],
+        'replaceTaskAssignments' => ['summary' => 'Save peer review assignments', 'description' => 'Replace the full list of peer review assignments for the selected task.'],
+        'taskResults' => ['summary' => 'Task peer review results', 'description' => 'Get all peer review results for the selected task.'],
     ],
 ];
