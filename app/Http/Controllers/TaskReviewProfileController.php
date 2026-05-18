@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\AI\Services\AIModelResolver;
 use App\Http\Requests\UpdateTaskReviewProfileRequest;
 use App\Models\Task;
 use App\Models\TaskReviewProfile;
@@ -10,6 +11,10 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class TaskReviewProfileController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private readonly AIModelResolver $aiModelResolver,
+    ) {}
 
     private function defaultSupportedFormats(): array
     {
@@ -61,8 +66,10 @@ class TaskReviewProfileController extends Controller
                 'rubric' => $profile?->rubric_json ?? $this->defaultRubric($task),
                 'custom_prompt' => $profile?->custom_prompt,
                 'supported_formats' => $profile?->supported_formats_json ?? $this->defaultSupportedFormats(),
+                'ai_model_key' => $this->aiModelResolver->normalizeKey($profile?->ai_model_key),
                 'version' => $profile?->version ?? 1,
             ],
+            'available_models' => $this->aiModelResolver->publicOptions(),
         ]);
     }
 
@@ -79,6 +86,7 @@ class TaskReviewProfileController extends Controller
         $profile->rubric_json = $validated['rubric'];
         $profile->custom_prompt = $validated['custom_prompt'] ?? null;
         $profile->supported_formats_json = $validated['supported_formats'] ?? $this->defaultSupportedFormats();
+        $profile->ai_model_key = $this->aiModelResolver->normalizeKey($validated['ai_model_key'] ?? null);
         $profile->version = $profile->exists ? $profile->version + 1 : 1;
         $profile->save();
 

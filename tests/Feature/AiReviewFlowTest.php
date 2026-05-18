@@ -49,7 +49,10 @@ class AiReviewFlowTest extends TestCase
                         ),
                     ],
                     unsupportedChecks: [],
-                    raw: ['provider' => 'fake'],
+                    raw: [
+                        'provider' => $payload->provider,
+                        'model' => $payload->model,
+                    ],
                 );
             }
         });
@@ -83,10 +86,12 @@ class AiReviewFlowTest extends TestCase
             ],
             'custom_prompt' => 'Ответ должен быть на русском языке.',
             'supported_formats' => ['php', 'zip', 'docx', 'xlsx', 'csv', 'tsv'],
+            'ai_model_key' => 'deepseek_v4',
         ]);
 
         $profileResponse->assertOk()
             ->assertJsonPath('profile.enabled', true)
+            ->assertJsonPath('profile.ai_model_key', 'deepseek_v4')
             ->assertJsonPath('profile.version', 1);
 
         $submissionResponse = $this->actingAs($student, 'api')->post('/api/task/submit', [
@@ -111,6 +116,8 @@ class AiReviewFlowTest extends TestCase
 
         $review = AiReviewRun::findOrFail($reviewId)->fresh();
         $this->assertSame('completed', $review->status->value);
+        $this->assertSame('nekocode', $review->provider);
+        $this->assertSame('gpt-5.5', $review->model);
         $this->assertSame(88, $review->recommended_score);
         $this->assertStringContainsString('Итоговая оценка: 88/100', (string) $review->summary);
         $this->assertSame('passed', $review->result_json['criteria_results'][0]['status']);
@@ -197,11 +204,14 @@ class AiReviewFlowTest extends TestCase
         $profile = TaskReviewProfile::where('task_id', $task->id)->firstOrFail();
 
         $this->assertTrue($profile->enabled);
+        $this->assertSame('minimax', $profile->ai_model_key);
         $this->assertCount(3, $profile->rubric_json);
         $this->assertSame(100, array_sum(array_column($profile->rubric_json, 'weight')));
 
         $review = AiReviewRun::findOrFail((int) $queueResponse->json('review.id'))->fresh();
         $this->assertSame('completed', $review->status->value);
+        $this->assertSame('openrouter', $review->provider);
+        $this->assertSame('minimax/minimax-m2.5:free', $review->model);
     }
 
     /**

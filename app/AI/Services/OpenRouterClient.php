@@ -18,17 +18,19 @@ class OpenRouterClient implements LLMClientInterface
         private readonly HttpFactory $http,
         private readonly PromptBuilder $promptBuilder,
         private readonly AIResultSchemaValidator $validator,
+        private readonly AIModelResolver $modelResolver,
     ) {}
 
     public function analyze(CompiledReviewPayload $payload): ReviewResult
     {
-        $apiKey = (string) config('ai.api_key');
+        $modelConfig = $this->modelResolver->resolveProviderModel($payload->provider, $payload->model);
+        $apiKey = $modelConfig['api_key'];
         if ($apiKey === '') {
-            throw new RuntimeException('AI_API_KEY is not configured.');
+            throw new RuntimeException('AI API key is not configured for model '.$modelConfig['key'].'.');
         }
 
         $prompt = $this->promptBuilder->build($payload);
-        $url = config('ai.base_url').'/chat/completions';
+        $url = $modelConfig['base_url'].'/chat/completions';
         $baseRequest = $this->buildRequestPayload($payload, $prompt);
         $maxAttempts = max(1, (int) config('ai.openrouter.retry_attempts', 3));
         $lastException = null;

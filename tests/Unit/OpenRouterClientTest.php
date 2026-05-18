@@ -218,12 +218,75 @@ JSON,
         $this->assertSame(2, $attempt);
     }
 
-    private function payload(): CompiledReviewPayload
+    public function test_client_can_call_nekocode_compatible_model_config(): void
+    {
+        config([
+            'ai.api_key' => null,
+            'ai.base_url' => 'https://openrouter.ai/api/v1',
+            'ai.timeout' => 10,
+            'ai.connect_timeout' => 2,
+            'ai.temperature' => 0.1,
+            'ai.max_completion_tokens' => 4096,
+            'ai.openrouter.retry_attempts' => 1,
+            'ai.openrouter.retry_delay_ms' => 0,
+            'ai.openrouter.json_mode' => true,
+            'ai.openrouter.retry_without_json_mode' => true,
+            'ai.openrouter.reasoning_effort' => 'none',
+            'ai.openrouter.exclude_reasoning' => true,
+            'ai.models.deepseek_v4' => [
+                'label' => 'Deepseek v4',
+                'provider' => 'nekocode',
+                'base_url' => 'https://gateway.nekocode.app/andromeda/v1',
+                'api_key' => 'neko-test-key',
+                'model' => 'gpt-5.5',
+            ],
+        ]);
+
+        Http::fake([
+            'https://gateway.nekocode.app/andromeda/v1/chat/completions' => Http::response([
+                'choices' => [
+                    [
+                        'finish_reason' => 'stop',
+                        'message' => [
+                            'role' => 'assistant',
+                            'content' => json_encode([
+                                'summary' => 'NekoCode модель проверила ответ.',
+                                'recommended_score' => 93,
+                                'confidence' => 0.84,
+                                'unsupported_checks' => [],
+                                'criteria_results' => [
+                                    [
+                                        'criterion_id' => 'criterion_1',
+                                        'label' => 'Корректность',
+                                        'passed' => true,
+                                        'score' => 93,
+                                        'evidence' => ['Ответ получен через NekoCode gateway.'],
+                                        'feedback' => 'Проверка выполнена.',
+                                    ],
+                                ],
+                            ], JSON_UNESCAPED_UNICODE),
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = app(OpenRouterClient::class)->analyze($this->payload('nekocode', 'gpt-5.5'));
+
+        $this->assertSame(93, $result->recommendedScore);
+        Http::assertSent(function (Request $request) {
+            return $request->url() === 'https://gateway.nekocode.app/andromeda/v1/chat/completions'
+                && $request->hasHeader('Authorization', 'Bearer neko-test-key')
+                && $request->data()['model'] === 'gpt-5.5';
+        });
+    }
+
+    private function payload(string $provider = 'openrouter', string $model = 'minimax/minimax-m2.5:free'): CompiledReviewPayload
     {
         return new CompiledReviewPayload(
             reviewRunId: 1,
-            provider: 'openrouter',
-            model: 'minimax/minimax-m2.5:free',
+            provider: $provider,
+            model: $model,
             submission: [
                 'task_id' => 1,
                 'task_name' => 'Тестовое задание',

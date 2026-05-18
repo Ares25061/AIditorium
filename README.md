@@ -90,7 +90,15 @@ QUEUE_CONNECTION=database
 AI_PROVIDER=openrouter
 AI_BASE_URL=https://openrouter.ai/api/v1
 AI_API_KEY=your_key_here
-AI_MODEL=openai/gpt-4.1-mini
+AI_MODEL=minimax/minimax-m2.5:free
+AI_DEFAULT_MODEL_KEY=minimax
+AI_MINIMAX_PROVIDER=openrouter
+AI_MINIMAX_BASE_URL=https://openrouter.ai/api/v1
+AI_MINIMAX_API_KEY=your_openrouter_key_here
+AI_MINIMAX_MODEL=minimax/minimax-m2.5:free
+AI_NEKOCODE_BASE_URL=https://gateway.nekocode.app/andromeda/v1
+AI_NEKOCODE_API_KEY=your_nekocode_key_here
+AI_NEKOCODE_MODEL=gpt-5.5
 AI_TIMEOUT=120
 AI_TEMPERATURE=0.1
 AI_MAX_COMPLETION_TOKENS=4096
@@ -111,6 +119,11 @@ AI_OPENROUTER_EXCLUDE_REASONING=true
 - `AI_ZIP_MAX_TOTAL_UNCOMPRESSED_BYTES`
 
 Для reasoning-моделей OpenRouter, например `minimax/minimax-m2.5:free`, по умолчанию включены повторы запроса, увеличенный лимит ответа и повтор без JSON mode. Это снижает риск ошибки `OpenRouter returned an empty completion`, когда провайдер возвращает успешный ответ без `message.content`.
+
+В настройках AI-проверки задания можно выбрать модель:
+
+- `minimax` — текущая модель MiniMax через OpenRouter.
+- `deepseek_v4` — модель Deepseek v4 на фронте, backend отправляет ее в NekoCode как `gpt-5.5`.
 
 ### 3. Запуск приложения
 

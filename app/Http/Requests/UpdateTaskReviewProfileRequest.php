@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\AI\Services\AIModelResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,6 +26,12 @@ class UpdateTaskReviewProfileRequest extends FormRequest
             'rubric.*.checks' => 'sometimes|array',
             'rubric.*.checks.*' => 'required|string|max:1000',
             'custom_prompt' => 'sometimes|nullable|string|max:10000',
+            'ai_model_key' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(app(AIModelResolver::class)->allowedKeys()),
+            ],
             'supported_formats' => 'sometimes|array',
             'supported_formats.*' => [
                 'string',

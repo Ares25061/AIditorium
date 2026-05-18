@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(LLMClientInterface::class, function ($app) {
             return match (config('ai.provider')) {
-                'openrouter' => $app->make(OpenRouterClient::class),
+                'openrouter', 'nekocode' => $app->make(OpenRouterClient::class),
                 default => throw new \RuntimeException('Unsupported AI provider: '.config('ai.provider')),
             };
         });

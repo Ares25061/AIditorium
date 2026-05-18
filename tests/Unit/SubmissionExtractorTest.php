@@ -183,6 +183,40 @@ XML;
         $this->assertSame(['тест.rar'], $result['unsupported_files']);
     }
 
+    public function test_extracts_zip_with_docx_code_and_csv_artifacts(): void
+    {
+        $this->markTestSkippedIfZipExtensionMissing();
+
+        $path = Storage::disk('public')->path('fixtures/submission-bundle.zip');
+        LocalFile::ensureDirectoryExists(dirname($path));
+
+        $zip = new \ZipArchive;
+        $zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('report.docx', $this->buildDocxBytes('Текст отчета из архива'));
+        $zip->addFromString('src/solution.php', "<?php\n\nfunction solve(): string\n{\n    return 'ok';\n}\n");
+        $zip->addFromString('data/result.csv', "name,score\nАнна,95\n");
+        $zip->addFromString('assets/image.bin', "\x00\x01binary");
+        $zip->close();
+
+        $file = new File([
+            'path' => 'fixtures/submission-bundle.zip',
+            'original_name' => 'submission-bundle.zip',
+            'extension' => 'zip',
+        ]);
+
+        $result = app(SubmissionExtractor::class)->extract($file);
+
+        $this->assertSame('zip', $result['kind']);
+        $this->assertContains('report.docx', $result['tree']);
+        $this->assertContains('src/solution.php', $result['tree']);
+        $this->assertContains('data/result.csv', $result['tree']);
+        $this->assertContains('assets/image.bin', $result['unsupported_files']);
+        $this->assertSame(['docx', 'code', 'csv'], array_column($result['artifacts'], 'kind'));
+        $this->assertStringContainsString('Текст отчета из архива', $result['artifacts'][0]['text_excerpt']);
+        $this->assertStringContainsString('function solve', $result['artifacts'][1]['snippet']);
+        $this->assertSame(['name', 'score'], $result['artifacts'][2]['preview_rows'][0]);
+    }
+
     public function test_rejects_zip_path_traversal(): void
     {
         $this->markTestSkippedIfZipExtensionMissing();
@@ -212,5 +246,26 @@ XML;
         if (! class_exists(\ZipArchive::class)) {
             $this->markTestSkipped('zip extension is required for this test.');
         }
+    }
+
+    private function buildDocxBytes(string $text): string
+    {
+        $path = Storage::disk('public')->path('fixtures/inner-docx-'.uniqid().'.docx');
+        LocalFile::ensureDirectoryExists(dirname($path));
+
+        $zip = new \ZipArchive;
+        $zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString(
+            'word/document.xml',
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>'
+            .htmlspecialchars($text, ENT_XML1 | ENT_COMPAT, 'UTF-8')
+            .'</w:t></w:r></w:p></w:body></w:document>',
+        );
+        $zip->close();
+
+        $bytes = LocalFile::get($path);
+        LocalFile::delete($path);
+
+        return $bytes;
     }
 }

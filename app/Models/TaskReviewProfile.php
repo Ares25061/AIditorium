@@ -13,6 +13,7 @@ class TaskReviewProfile extends Model
         'rubric_json',
         'custom_prompt',
         'supported_formats_json',
+        'ai_model_key',
         'version',
     ];
 

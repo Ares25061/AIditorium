@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\AI\Services\AIModelResolver;
 use App\Enums\ReviewRunStatus;
 use App\Http\Requests\QueueAiReviewRequest;
 use App\Jobs\ProcessAiReviewRunJob;
@@ -18,6 +19,10 @@ use RuntimeException;
 class AiReviewController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private readonly AIModelResolver $aiModelResolver,
+    ) {}
 
     public function queue(QueueAiReviewRequest $request, Task $task, File $file)
     {
@@ -57,6 +62,8 @@ class AiReviewController extends Controller
             ]);
         }
 
+        $aiModel = $this->aiModelResolver->resolve($profile->ai_model_key);
+
         $reviewRun = AiReviewRun::create([
             'course_id' => $task->course_id,
             'discipline_id' => $task->discipline_id,
@@ -65,8 +72,8 @@ class AiReviewController extends Controller
             'student_id' => $file->user_id,
             'requested_by' => Auth::id(),
             'status' => ReviewRunStatus::QUEUED,
-            'provider' => (string) config('ai.provider'),
-            'model' => (string) config('ai.model'),
+            'provider' => $aiModel['provider'],
+            'model' => $aiModel['model'],
         ]);
 
         $this->dispatchReviewRun($reviewRun->id);
@@ -187,6 +194,7 @@ class AiReviewController extends Controller
                 'rubric_json' => $this->defaultRubric($task),
                 'custom_prompt' => null,
                 'supported_formats_json' => config('ai.supported_extensions', []),
+                'ai_model_key' => $this->aiModelResolver->defaultKey(),
                 'version' => 1,
             ],
         );

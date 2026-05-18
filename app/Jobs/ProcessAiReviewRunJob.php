@@ -7,6 +7,7 @@ use App\AI\DTO\CompiledReviewPayload;
 use App\AI\DTO\CriterionResult;
 use App\AI\DTO\ReviewProfile;
 use App\AI\DTO\StructuredCriterion;
+use App\AI\Services\AIModelResolver;
 use App\AI\Services\CriteriaCompiler;
 use App\AI\Services\ReviewResultAssembler;
 use App\AI\Services\ServerCriterionEvaluator;
@@ -46,6 +47,7 @@ class ProcessAiReviewRunJob implements ShouldQueue
     public function handle(
         SubmissionExtractor $extractor,
         CriteriaCompiler $criteriaCompiler,
+        AIModelResolver $aiModelResolver,
         ServerCriterionEvaluator $serverCriterionEvaluator,
         ReviewResultAssembler $resultAssembler,
         LLMClientInterface $llmClient,
@@ -92,11 +94,12 @@ class ProcessAiReviewRunJob implements ShouldQueue
                 ...$compiled['unsupported_checks'],
                 ...$serverEvaluation['unsupported_checks'],
             ]));
+            $aiModel = $aiModelResolver->resolveProviderModel($reviewRun->provider, $reviewRun->model);
 
             $payload = new CompiledReviewPayload(
                 reviewRunId: $reviewRun->id,
-                provider: (string) config('ai.provider'),
-                model: (string) config('ai.model'),
+                provider: $aiModel['provider'],
+                model: $aiModel['model'],
                 submission: [
                     'task_id' => $reviewRun->task_id,
                     'task_name' => $reviewRun->task?->name,
@@ -119,6 +122,9 @@ class ProcessAiReviewRunJob implements ShouldQueue
             $reviewRun->update([
                 'criteria_snapshot_json' => [
                     'profile_version' => $profile->version,
+                    'ai_model_key' => $aiModel['key'],
+                    'provider' => $aiModel['provider'],
+                    'model' => $aiModel['model'],
                     'rubric' => $compiled['criteria'],
                     'llm_criteria' => $serverEvaluation['llm_criteria'],
                     'server_results' => array_map(
