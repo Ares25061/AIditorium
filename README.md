@@ -1,81 +1,65 @@
 # AIditorium
 
-AIditorium — это backend API-платформа на Laravel для учебных курсов, дисциплин, заданий, сдач, комментариев, оценок и AI-автопроверки работ студентов.
+AIditorium - backend API на Laravel 12 для учебных курсов, дисциплин, заданий, файлов, комментариев, оценок, peer review и AI-review работ студентов.
 
-Проект ориентирован на работу как серверное API для сайта/клиента: здесь есть JWT-аутентификация, файловые загрузки, курсы и роли в курсе, очереди для фоновых задач и автогенерируемая OpenAPI-документация.
+## Возможности backend
 
-## Что умеет проект
+- JWT-аутентификация: регистрация, вход, выход и обновление токена.
+- Пользователи, роли приложения и аватары пользователей.
+- Курсы с участниками, ролями в курсе, кодами приглашения, закрытием, переоткрытием, архивированием и восстановлением.
+- Дисциплины внутри курсов.
+- Задания с дедлайном, баллами, материалами, несколькими вложениями и студенческими сдачами.
+- Файлы на Laravel `public` disk, скачивание файлов и хранение метаданных загрузки.
+- Комментарии к курсам, заданиям, дисциплинам и файлам, включая ответы.
+- Оценки преподавателя, AI-оценки и статистика по оценкам.
+- Назначение проверяющих преподавателей на задания.
+- Peer review: настройки, назначения студентов на взаимную проверку и результаты проверки.
+- AI-review: профиль проверки задания, очередь проверки сдачи, результат, рекомендованная оценка и применение оценки отдельным действием преподавателя.
 
-- Управление пользователями и ролями
-- Работа с курсами и дисциплинами
-- Создание заданий и прикрепление материалов
-- Загрузка студенческих сдач
-- Комментарии по курсам и заданиям
-- Ручные оценки преподавателя
-- AI-автопроверка сдач с teacher-only критериями проверки
-
-## AI-автопроверка
-
-В проекте реализован backend-first модуль AI-проверки:
-
-- преподаватель настраивает профиль AI-проверки для задания;
-- профиль хранит структурированные критерии, поддерживаемые форматы и свободный prompt;
-- преподаватель ставит конкретную сдачу в очередь на проверку;
-- Laravel извлекает содержимое файла, нормализует текст в UTF-8 и отправляет подготовленный payload в абстрактный LLM-service;
-- результат сохраняется как AI-review с отчетом, рекомендованной оценкой и статусом выполнения;
-- итоговая оценка в `grades` применяется только явным teacher action.
-
-### Поддерживаемые форматы v1
-
-- Код и текстовые файлы: `php`, `js`, `ts`, `py`, `java`, `cs`, `sql`, `html`, `css`, `json`, `xml`, `yaml`, `md`, `txt` и др.
-- Документы Word: `docx`
-- Таблицы: `xlsx`, `csv`, `tsv`
-- Архивы: `zip`
-
-Ограничения v1:
-
-- чужой код не выполняется на хостинге;
-- проверки “скомпилировать”, “запустить”, “прогнать тесты” не исполняются и возвращаются как `unsupported_checks`;
-- legacy-форматы `doc` и `xls` принимаются, но без полноценного структурного извлечения.
-
-## Технологический стек
+## Backend-стек
 
 - PHP `8.2+`
 - Laravel `12`
 - MariaDB
 - JWT auth через `tymon/jwt-auth`
-- Очереди Laravel через `database` driver
-- Vite + Tailwind CSS
-- Scramble для OpenAPI/Swagger-like docs
-- OpenRouter как первый production-адаптер LLM
+- Laravel queues с `database` connection по умолчанию
+- Scramble для OpenAPI-документации
+- PHPUnit для unit и feature тестов
 
-## Структура репозитория
+## Структура backend
 
-- `app/` — доменная логика, контроллеры, модели, сервисы, AI-модуль
-- `routes/api.php` — основной API
-- `database/migrations/` — схема БД
-- `lang/` — RU/EN локализация сообщений и описаний API
-- `config/ai.php` — настройки AI-провайдера и лимитов извлечения
-- `CodeAnalyzer/` — старый C#-прототип, нужен как справочный материал и не участвует в runtime/deploy Laravel-приложения
+- `app/` - модели, контроллеры, политики, сервисы, jobs и AI-модуль.
+- `routes/api.php` - основные API-маршруты.
+- `routes/web.php` - корневой web route с Laravel welcome view.
+- `database/migrations/` - схема базы данных.
+- `database/seeders/` - начальные роли, permissions и admin-пользователь.
+- `config/ai.php` - настройки AI-review, моделей, лимитов извлечения и server evaluator.
+- `config/auth.php` и `config/jwt.php` - JWT-аутентификация.
+- `lang/ru` и `lang/en` - локализация сообщений и описаний API.
+- `tests/` - unit и feature тесты backend.
 
-## Локальный запуск
-
-### 1. Подготовка
+## Локальный запуск backend
 
 ```bash
 composer install
 copy .env.example .env
 php artisan key:generate
+php artisan jwt:secret
 php artisan migrate --seed
 php artisan storage:link
+php artisan serve
 ```
 
-### 2. Настройка `.env`
+После запуска API доступно от `APP_URL`, обычно `http://localhost:8000`.
 
-Обязательные переменные:
+## Настройка `.env`
+
+Фактический пример переменных находится в `.env.example`. Для локального backend-запуска важны следующие группы настроек:
 
 ```env
 APP_URL=http://localhost
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
 
 DB_CONNECTION=mariadb
 DB_HOST=127.0.0.1
@@ -87,116 +71,158 @@ DB_PASSWORD=
 FILESYSTEM_DISK=public
 QUEUE_CONNECTION=database
 
-AI_PROVIDER=openrouter
-AI_BASE_URL=https://openrouter.ai/api/v1
-AI_API_KEY=your_key_here
-AI_MODEL=minimax/minimax-m2.5:free
+AI_PROVIDER=...
+AI_BASE_URL=...
+AI_API_KEY=...
+AI_MODEL=...
 AI_DEFAULT_MODEL_KEY=minimax
-AI_MINIMAX_PROVIDER=openrouter
-AI_MINIMAX_BASE_URL=https://openrouter.ai/api/v1
-AI_MINIMAX_API_KEY=your_openrouter_key_here
-AI_MINIMAX_MODEL=minimax/minimax-m2.5:free
-AI_NEKOCODE_BASE_URL=https://gateway.nekocode.app/andromeda/v1
-AI_NEKOCODE_API_KEY=your_nekocode_key_here
-AI_NEKOCODE_MODEL=gpt-5.5
-AI_TIMEOUT=120
-AI_TEMPERATURE=0.1
-AI_MAX_COMPLETION_TOKENS=4096
-AI_OPENROUTER_RETRY_ATTEMPTS=3
-AI_OPENROUTER_RETRY_DELAY_MS=500
-AI_OPENROUTER_JSON_MODE=true
-AI_OPENROUTER_RETRY_WITHOUT_JSON_MODE=true
-AI_OPENROUTER_REASONING_EFFORT=none
-AI_OPENROUTER_EXCLUDE_REASONING=true
+
+AI_DISPATCH_MODE=after_response
+AI_QUEUE_CONNECTION=
+AI_QUEUE=
+AI_JOB_TRIES=3
+AI_JOB_TIMEOUT=1800
+AI_JOB_BACKOFF=30,90,180
+
+AI_EXECUTION_ENABLED=true
+AI_EXECUTION_TIMEOUT=15
+AI_PHP_BINARY=
 ```
 
-Дополнительно можно настраивать лимиты AI-извлечения:
+Также настраиваются лимиты извлечения данных для AI-review:
 
 - `AI_MAX_EXTRACTED_CHARS`
 - `AI_MAX_EXCERPT_CHARS`
 - `AI_MAX_FILES_PER_REVIEW`
+- `AI_MAX_CSV_PREVIEW_ROWS`
+- `AI_MAX_SHEET_PREVIEW_ROWS`
+- `AI_MAX_SHEET_PREVIEW_COLUMNS`
 - `AI_ZIP_MAX_ENTRIES`
+- `AI_ZIP_MAX_DEPTH`
 - `AI_ZIP_MAX_TOTAL_UNCOMPRESSED_BYTES`
 
-Для reasoning-моделей OpenRouter, например `minimax/minimax-m2.5:free`, по умолчанию включены повторы запроса, увеличенный лимит ответа и повтор без JSON mode. Это снижает риск ошибки `OpenRouter returned an empty completion`, когда провайдер возвращает успешный ответ без `message.content`.
+## API и документация
 
-В настройках AI-проверки задания можно выбрать модель:
+Основные API-маршруты находятся под префиксом `/api`.
 
-- `minimax` — текущая модель MiniMax через OpenRouter.
-- `deepseek_v4` — модель Deepseek v4 на фронте, backend отправляет ее в NekoCode как `gpt-5.5`.
+Документация Scramble после запуска приложения:
 
-### 3. Запуск приложения
+- UI: [`/docs/api`](http://localhost:8000/docs/api)
+- OpenAPI JSON: [`/docs/api.json`](http://localhost:8000/docs/api.json)
 
-Отдельно:
+Scramble строит документацию по текущим маршрутам, FormRequest-валидации и переводам из `lang/`.
 
-```bash
-php artisan serve
-php artisan queue:listen --tries=1
-npm install
-npm run dev
-```
+## Основные группы API
 
-Или через composer script:
+- Auth: `/api/register`, `/api/login`, `/api/logout`, `/api/refresh`.
+- Users: CRUD для пользователей, редактирование профиля, установка роли, загрузка и удаление аватара.
+- Courses: CRUD, просмотр своих курсов, участники курса, invite codes, закрытие, переоткрытие, архив и восстановление.
+- Disciplines: CRUD, список дисциплин и поиск дисциплины по slug внутри курса.
+- Tasks: CRUD, список заданий, просмотр по номеру, вложения, сдачи студентов, назначенные проверяющие.
+- Files: загрузка, просмотр, скачивание, файлы курса и файлы студентов.
+- Comments: комментарии курса, задания, свои комментарии и ответы на комментарий.
+- Grades: CRUD, оценки курса, свои оценки, оценки студента и статистика.
+- Peer review: настройки задания, назначения, список своих назначений и сохранение результатов.
+- AI-review: профиль проверки задания, запуск проверки сдачи, список проверок, просмотр результата и применение рекомендованной оценки.
 
-```bash
-composer run dev
-```
+## Файлы
 
-## Работа с файлами
-
-Проект использует `public` disk Laravel и ожидает симлинк:
+Backend использует Laravel `public` disk. Для доступа к загруженным файлам нужен симлинк:
 
 ```bash
 php artisan storage:link
 ```
 
-Все загружаемые файлы сохраняют метаданные:
+Для загруженных файлов сохраняются метаданные:
 
 - `original_name`
 - `mime_type`
 - `extension`
 - `size_bytes`
 
-Это важно и для обычных загрузок, и для AI-автопроверки.
+Обычный файл ограничен `10 MB` в request-валидации. Аватар должен быть изображением `jpeg`, `png`, `jpg` или `webp`, не больше `3 MB`, с размерами от `100x100` до `2000x2000`.
 
-## API-документация
+## AI-review
 
-После запуска документация доступна по адресам:
+AI-review запускается преподавателем для конкретной студенческой сдачи. Студент не может запустить или просмотреть AI-review.
 
-- UI: [`/docs/api`](http://localhost/docs/api)
-- OpenAPI JSON: [`/api.json`](http://localhost/api.json)
+Процесс проверки:
 
-Scramble генерирует описание на основе текущих маршрутов, request validation и переводов из `lang/`.
+1. Преподаватель настраивает профиль проверки задания.
+2. Профиль хранит `enabled`, rubric, custom prompt, supported formats, ключ модели и версию.
+3. Преподаватель ставит сдачу в AI-review.
+4. Backend создает `ai_review_runs` со статусом `queued`.
+5. Job извлекает содержимое файла, выполняет поддерживаемые серверные проверки и отправляет оставшиеся критерии в AI-модель.
+6. Результат сохраняется в `ai_review_runs`.
+7. Рекомендованная оценка применяется в `grades` только отдельным endpoint преподавателя.
+
+Статусы проверки:
+
+- `queued`
+- `extracting`
+- `analyzing`
+- `completed`
+- `failed`
+
+В выборе модели доступны:
+
+- `minimax`
+- `deepseek`
+
+В backend-конфиге DeepSeek хранится как ключ `deepseek_v4`.
+
+## Извлечение сдач для AI-review
+
+Поддерживаемые форматы берутся из `config/ai.php`.
+
+Извлекаются:
+
+- text/code файлы: `txt`, `md`, `json`, `xml`, `yml`, `yaml`, `ini`, `env`, `php`, `js`, `ts`, `jsx`, `tsx`, `vue`, `py`, `java`, `kt`, `cs`, `go`, `rs`, `rb`, `c`, `cpp`, `swift`, `sql`, `sh`, `ps1`, `html`, `css` и другие расширения из конфига;
+- `docx` - текст и часть Office metadata;
+- `xlsx` - preview листов;
+- `csv` и `tsv` - preview строк и текстовый excerpt;
+- `zip` - дерево архива и поддерживаемые вложенные файлы.
+
+Ограничения:
+
+- `.doc` и `.xls` принимаются, но полноценное извлечение текста или таблиц для них не реализовано.
+- `.rar` и `.7z` принимаются как неподдерживаемые архивы без извлечения.
+- ZIP с path traversal или превышением лимитов отклоняется.
+- Текст нормализуется в UTF-8; есть тест на Windows-1251 входные данные с русским текстом.
+
+## Server evaluator
+
+Часть критериев AI-review проверяется на сервере без участия модели:
+
+- compile/syntax checks для `php`, `py`, `js`, `cpp`, `cs` при наличии нужного runtime или compiler;
+- HTML markup validation;
+- базовая CSS structural validation;
+- структурные проверки кода: количество методов/функций, CRUD-методы, признаки Laravel controller.
+
+Если нужный runtime или compiler не найден, критерий получает статус `unsupported`. Запуск произвольных тестов, Docker, sandbox-сценариев и runtime-команд из критериев не выполняется и относится к неподдерживаемым проверкам.
 
 ## Очереди и фоновые задачи
 
-AI-review работает через очередь:
+AI-review обрабатывает `ProcessAiReviewRunJob`.
 
-`queued -> extracting -> analyzing -> completed/failed`
+В `.env.example` режим запуска AI-review задан через `AI_DISPATCH_MODE=after_response`. Также поддерживаются режимы:
 
-Для production окружения нужен запущенный queue worker. Без него AI-проверки не будут завершаться.
+- `sync` - выполнить job синхронно;
+- `after_response` - выполнить после отправки HTTP-ответа;
+- `queue` - отправить job в Laravel queue.
 
-## Quick Start (EN)
-
-AIditorium is a Laravel 12 backend API for courses, tasks, submissions, grades, comments, and AI-assisted student work review.
-
-Core stack:
-
-- Laravel 12
-- PHP 8.2+
-- MariaDB
-- JWT auth
-- Database queues
-- Scramble API docs
-- OpenRouter-backed LLM adapter
-
-Quick start:
+Если используется `AI_DISPATCH_MODE=queue`, нужен queue worker, например:
 
 ```bash
-composer install
-copy .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-php artisan storage:link
-composer run dev
+php artisan queue:listen --tries=1
 ```
+
+Для job настраиваются `AI_JOB_TRIES`, `AI_JOB_TIMEOUT` и `AI_JOB_BACKOFF`.
+
+## Тесты
+
+```bash
+composer test
+```
+
+Текущие тесты покрывают AI-review flow, извлечение файлов, server evaluator, сборку результата проверки, клиент AI-модели, slug helper и регрессии контроллеров.
