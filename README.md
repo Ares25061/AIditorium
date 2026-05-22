@@ -2,6 +2,8 @@
 
 AIditorium - backend API на Laravel 12 для учебных курсов, дисциплин, заданий, файлов, комментариев, оценок, peer review и AI-review работ студентов.
 
+Frontend проекта находится в репозитории  [Hukkatir/aiditorium-client](https://github.com/Hukkatir/aiditorium-client).
+
 ## Возможности backend
 
 - JWT-аутентификация: регистрация, вход, выход и обновление токена.
