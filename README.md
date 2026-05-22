@@ -22,7 +22,8 @@ AIditorium - backend API на Laravel 12 для учебных курсов, д�
 - Laravel `12`
 - MariaDB
 - JWT auth через `tymon/jwt-auth`
-- Laravel queues с `database` connection по умолчанию
+- Laravel job для AI-review; на текущей VPS-конфигурации выполняется через `after_response`
+- Database queue подготовлена и может использоваться при `AI_DISPATCH_MODE=queue`
 - Scramble для OpenAPI-документации
 - PHPUnit для unit и feature тестов
 
@@ -38,11 +39,11 @@ AIditorium - backend API на Laravel 12 для учебных курсов, д�
 - `lang/ru` и `lang/en` - локализация сообщений и описаний API.
 - `tests/` - unit и feature тесты backend.
 
-## Локальный запуск backend
+## Запуск backend
 
 ```bash
 composer install
-copy .env.example .env
+cp .env.example .env
 php artisan key:generate
 php artisan jwt:secret
 php artisan migrate --seed
@@ -50,13 +51,15 @@ php artisan storage:link
 php artisan serve
 ```
 
-После запуска API доступно от `APP_URL`, обычно `http://localhost:8000`.
+После запуска API доступно от `APP_URL`. При `php artisan serve` это обычно `http://localhost:8000`.
 
 ## Настройка `.env`
 
-Фактический пример переменных находится в `.env.example`. Для локального backend-запуска важны следующие группы настроек:
+Фактический шаблон переменных находится в `.env.example`. Ниже - sanitized-срез текущей VPS-конфигурации без секретов и токенов:
 
 ```env
+APP_ENV=local
+APP_DEBUG=false
 APP_URL=http://localhost
 APP_LOCALE=en
 APP_FALLBACK_LOCALE=en
@@ -65,31 +68,37 @@ DB_CONNECTION=mariadb
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=Aiditorium
-DB_USERNAME=root
-DB_PASSWORD=
+DB_USERNAME=<database_user>
+DB_PASSWORD=<secret>
 
+SESSION_DRIVER=database
+SESSION_LIFETIME=240
+CACHE_STORE=database
 FILESYSTEM_DISK=public
 QUEUE_CONNECTION=database
 
-AI_PROVIDER=...
-AI_BASE_URL=...
-AI_API_KEY=...
-AI_MODEL=...
-AI_DEFAULT_MODEL_KEY=minimax
+JWT_SECRET=<secret>
 
+AI_PROVIDER=<configured_provider>
+AI_BASE_URL=<provider_base_url>
+AI_API_KEY=<secret>
+AI_MODEL=<default_model>
 AI_DISPATCH_MODE=after_response
+AI_TIMEOUT=120
+
+AI_NEKOCODE_BASE_URL=<provider_base_url>
+AI_NEKOCODE_API_KEY=<secret>
+AI_NEKOCODE_MODEL=gpt-5.5
+
 AI_QUEUE_CONNECTION=
 AI_QUEUE=
-AI_JOB_TRIES=3
-AI_JOB_TIMEOUT=1800
-AI_JOB_BACKOFF=30,90,180
 
-AI_EXECUTION_ENABLED=true
-AI_EXECUTION_TIMEOUT=15
 AI_PHP_BINARY=
 ```
 
-Также настраиваются лимиты извлечения данных для AI-review:
+В текущей конфигурации `AI_DISPATCH_MODE=after_response`: AI-review запускается как Laravel job после HTTP-ответа, но без помещения задачи в таблицу `jobs` и без обязательного queue worker.
+
+Также в `.env` настраиваются лимиты извлечения данных для AI-review:
 
 - `AI_MAX_EXTRACTED_CHARS`
 - `AI_MAX_EXCERPT_CHARS`
@@ -205,19 +214,21 @@ AI-review запускается преподавателем для конкр�
 
 AI-review обрабатывает `ProcessAiReviewRunJob`.
 
-В `.env.example` режим запуска AI-review задан через `AI_DISPATCH_MODE=after_response`. Также поддерживаются режимы:
+На текущей VPS-конфигурации задано `AI_DISPATCH_MODE=after_response`. Это значит, что job выполняется после отправки HTTP-ответа в том же PHP-процессе. Таблица `jobs` и queue worker для такого режима не используются.
+
+Поддерживаемые режимы запуска:
 
 - `sync` - выполнить job синхронно;
 - `after_response` - выполнить после отправки HTTP-ответа;
-- `queue` - отправить job в Laravel queue.
+- `queue` - отправить job в Laravel queue, используя `QUEUE_CONNECTION` и при необходимости `AI_QUEUE_CONNECTION` / `AI_QUEUE`.
 
-Если используется `AI_DISPATCH_MODE=queue`, нужен queue worker, например:
+Queue worker нужен только если используется `AI_DISPATCH_MODE=queue`, например:
 
 ```bash
-php artisan queue:listen --tries=1
+php artisan queue:work database --tries=1
 ```
 
-Для job настраиваются `AI_JOB_TRIES`, `AI_JOB_TIMEOUT` и `AI_JOB_BACKOFF`.
+Миграции для database queue (`jobs`, `job_batches`, `failed_jobs`) в проекте есть.
 
 ## Тесты
 
