@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Task extends Model
 {
@@ -31,5 +33,57 @@ class Task extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(File::class)->where('type', 'submission');
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function discipline(): BelongsTo
+    {
+        return $this->belongsTo(Discipline::class);
+    }
+
+    public function attachment(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'attachment_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(File::class)->where('type', 'task')->orderBy('id');
+    }
+
+    public function reviewProfile(): HasOne
+    {
+        return $this->hasOne(TaskReviewProfile::class);
+    }
+
+    public function aiReviewRuns(): HasMany
+    {
+        return $this->hasMany(AiReviewRun::class);
+    }
+
+    public function reviewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_reviewers')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
+    }
+
+    public function peerReviewSetting(): HasOne
+    {
+        return $this->hasOne(PeerReviewSetting::class);
+    }
+
+    public function peerReviewAssignments(): HasMany
+    {
+        return $this->hasMany(PeerReviewAssignment::class);
+    }
+
+    public function peerReviewResults(): HasMany
+    {
+        return $this->hasMany(PeerReviewResult::class);
     }
 }

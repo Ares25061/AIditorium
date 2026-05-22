@@ -21,6 +21,9 @@ return [
     'invite_code_generated' => 'Course invite code generated successfully!',
     'invite_code_regenerated' => 'Course invite code regenerated successfully!',
     'course_left' => 'Course left!',
+    'submitted' => ':item submitted successfully!',
+    'ai_review_queued' => 'AI review has been queued',
+    'ai_review_grade_applied' => 'AI grade applied successfully',
 
     // Error messages
     'not_found' => ':item not found',
@@ -38,6 +41,8 @@ return [
     'course_archived' => 'Cant leave or enter in an archived course',
     'invalid_invite_code' => 'Invalid invite code',
     'file_not_on_server' => 'File does not exist on server',
+    'file_upload_failed' => 'The file could not be uploaded. Check PHP/web-server upload limits.',
+    'file_upload_too_large' => 'The file must not be larger than :max.',
     'student_not_enrolled' => 'Student is not enrolled in this course',
     'avatar_upload_not_image' => 'Avatar must be an image.',
     'avatar_upload_invalid_type' => 'Avatar supports only JPG, PNG, GIF, and WEBP.',
@@ -46,6 +51,14 @@ return [
     'slug_letters' => 'slug must contain at least one letter',
     'slug_exists' => 'slug already exists',
     'slug_exists_in_course' => 'slug already exists in this course',
+    'grade_exists' => 'A grade for this task already exists',
+    'ai_review_profile_missing' => 'Task AI review profile is missing or disabled',
+    'ai_review_format_not_supported' => 'The file format is not supported by the AI review profile',
+    'ai_review_exists' => 'An active AI review already exists for this submission',
+    'ai_review_not_completed' => 'The AI review is not completed or has no recommended score',
+    'ai_review_invalid_submission' => 'The selected file is not a submission for this task',
+    'task_attachments_total_too_large' => 'The total size of task materials must not exceed :max.',
+    'invalid_task_reviewers' => 'Reviewers must be teachers in this course.',
 
     // Items names (for :item placeholder)
     'items' => [
@@ -53,6 +66,7 @@ return [
         'discipline' => 'Discipline',
         'file' => 'File',
         'user' => 'User',
+        'student' => 'Student',
         'task' => 'Task',
         'avatar' => 'Avatar',
         'role' => 'Role',
@@ -61,6 +75,9 @@ return [
         'user_list' => 'Users',
         'task_list' => 'Tasks',
         'invite_code' => 'Invite code',
+        'grade' => 'Grade',
+        'submission' => 'Submission',
+        'review_profile' => 'AI review profile',
 
     ],
 

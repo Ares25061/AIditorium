@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\AI\Contracts\LLMClientInterface;
+use App\AI\Services\OpenRouterClient;
 use App\Models\Course;
 use App\Models\Discipline;
 use App\Models\Task;
@@ -35,7 +37,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(LLMClientInterface::class, function ($app) {
+            return match (config('ai.provider')) {
+                'openrouter', 'nekocode' => $app->make(OpenRouterClient::class),
+                default => throw new \RuntimeException('Unsupported AI provider: '.config('ai.provider')),
+            };
+        });
     }
 
     /**

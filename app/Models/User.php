@@ -127,6 +127,26 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(File::class);
     }
 
+    public function aiReviewRuns(): HasMany
+    {
+        return $this->hasMany(AiReviewRun::class, 'student_id');
+    }
+
+    public function requestedAiReviewRuns(): HasMany
+    {
+        return $this->hasMany(AiReviewRun::class, 'requested_by');
+    }
+
+    public function peerReviewAssignments(): HasMany
+    {
+        return $this->hasMany(PeerReviewAssignment::class, 'reviewer_id');
+    }
+
+    public function peerReviewResults(): HasMany
+    {
+        return $this->hasMany(PeerReviewResult::class, 'reviewer_id');
+    }
+
 
     public function getAvatarUrlAttribute(): ?string
     {
@@ -141,10 +161,8 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->role->permissions->contains('name', $permission->value);
     }
-    public function getRoleNameAttribute():string
+    public function getRoleNameAttribute(): ?string
     {
-        return $this->role->name;
+        return $this->role?->name;
     }
 }
-
-

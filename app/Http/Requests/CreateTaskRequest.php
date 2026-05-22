@@ -20,7 +20,19 @@ class CreateTaskRequest extends FormRequest
             'description' => 'sometimes|string',
             'scores' => 'sometimes|integer',
             'deadline' => 'sometimes|date',
-            'attachment' => 'sometimes|file',
+            'attachment' => 'sometimes|file|max:10240',
+            'attachments' => 'sometimes|array',
+            'attachments.*' => 'file|max:10240',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'attachment.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'attachment.uploaded' => __('messages.file_upload_failed'),
+            'attachments.*.max' => __('messages.file_upload_too_large', ['max' => '10 MB']),
+            'attachments.*.uploaded' => __('messages.file_upload_failed'),
         ];
     }
 }

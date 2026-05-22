@@ -8,6 +8,9 @@ use App\Http\Controllers\DisciplineController;
 use App\Http\Controllers\UserAvatarController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\AiReviewController;
+use App\Http\Controllers\TaskReviewProfileController;
+use App\Http\Controllers\PeerReviewController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -51,10 +54,26 @@ Route::middleware(['auth:api'])->group(function () {
 
     Route::get('/task/viewTasks', [TaskController::class, 'viewTasks']);
     Route::get('/course/{course}/discipline/{discipline}/task/{number}', [TaskController::class, 'showByNumber']);
+    Route::post('/task/{task}/attachments', [TaskController::class, 'uploadAttachments']);
+    Route::get('/task/{task}/reviewers', [TaskController::class, 'reviewers']);
+    Route::match(['post', 'put'], '/task/{task}/reviewers', [TaskController::class, 'updateReviewers']);
     Route::apiResource('/task', TaskController::class);
     Route::post('/task/submit', [TaskController::class, 'attachSubmission']);
     Route::post('/task/unsubmit', [TaskController::class, 'detachSubmission']);
     Route::post('/task/submissions', [TaskController::class, 'submissions']);
+    Route::get('/task/{task}/review-profile', [TaskReviewProfileController::class, 'show']);
+    Route::put('/task/{task}/review-profile', [TaskReviewProfileController::class, 'update']);
+    Route::post('/task/{task}/submission/{file}/ai-review', [AiReviewController::class, 'queue']);
+    Route::get('/task/{task}/ai-reviews', [AiReviewController::class, 'index']);
+    Route::get('/ai-review/{review}', [AiReviewController::class, 'show']);
+    Route::post('/ai-review/{review}/apply-grade', [AiReviewController::class, 'applyGrade']);
+    Route::get('/peer-review/assignments', [PeerReviewController::class, 'myAssignments']);
+    Route::post('/peer-review/results', [PeerReviewController::class, 'saveResult']);
+    Route::get('/task/{task}/peer-review/settings', [PeerReviewController::class, 'showSettings']);
+    Route::put('/task/{task}/peer-review/settings', [PeerReviewController::class, 'updateSettings']);
+    Route::get('/task/{task}/peer-review/assignments', [PeerReviewController::class, 'taskAssignments']);
+    Route::post('/task/{task}/peer-review/assignments', [PeerReviewController::class, 'replaceTaskAssignments']);
+    Route::get('/task/{task}/peer-review/results', [PeerReviewController::class, 'taskResults']);
 
     Route::post('/comment/viewCourse', [CommentController::class, 'courseComments']);
     Route::post('/comment/viewTask', [CommentController::class, 'taskComments']);

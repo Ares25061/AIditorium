@@ -21,6 +21,9 @@ return [
     'invite_code_generated' => 'Инвайт-код для курса успешно сгенерирован!',
     'invite_code_regenerated' => 'Инвайт-код для курса успешно пересоздан!',
     'course_left' => 'Курс покинут',
+    'submitted' => ':item успешно отправлен!',
+    'ai_review_queued' => 'AI-проверка поставлена в очередь',
+    'ai_review_grade_applied' => 'AI-оценка успешно применена',
 
     // Error messages
     'not_found' => ':item не найден',
@@ -38,6 +41,8 @@ return [
     'course_archived' => 'Нельзя покинуть или войти в архивированный курс',
     'invalid_invite_code' => 'Неверный инвайт-код',
     'file_not_on_server' => 'Файл отсутствует на сервере',
+    'file_upload_failed' => 'Не удалось загрузить файл. Проверьте лимиты загрузки PHP и веб-сервера.',
+    'file_upload_too_large' => 'Размер файла не должен превышать :max.',
     'student_not_enrolled' => 'Студент не записан на этот курс',
     'avatar_upload_not_image' => 'Аватар должен быть изображением.',
     'avatar_upload_invalid_type' => 'Для аватара поддерживаются только JPG, PNG, GIF и WEBP.',
@@ -46,6 +51,14 @@ return [
     'slug_letters' => 'slug должен содержать хотя бы одну букву',
     'slug_exists' => 'slug уже существует',
     'slug_exists_in_course' => 'slug уже существует в этом курсе',
+    'grade_exists' => 'Оценка для этого задания уже существует',
+    'ai_review_profile_missing' => 'Для задания не настроен или отключен профиль AI-проверки',
+    'ai_review_format_not_supported' => 'Формат файла не поддерживается профилем AI-проверки',
+    'ai_review_exists' => 'Для этой сдачи уже есть актуальный AI-review',
+    'ai_review_not_completed' => 'AI-review еще не завершен или не содержит рекомендованную оценку',
+    'ai_review_invalid_submission' => 'Указанный файл не является сдачей для этого задания',
+    'task_attachments_total_too_large' => 'Общий размер материалов задания не должен превышать :max.',
+    'invalid_task_reviewers' => 'Проверяющие должны быть преподавателями этого курса.',
 
     // Items names
     'items' => [
@@ -53,6 +66,7 @@ return [
         'discipline' => 'Дисциплина',
         'file' => 'Файл',
         'user' => 'Пользователь',
+        'student' => 'Студент',
         'task' => 'Задание',
         'avatar' => 'Аватар',
         'role' => 'Роль',
@@ -61,6 +75,9 @@ return [
         'user_list' => 'Пользователи',
         'task_list' => 'Задания',
         'invite_code' => 'Инвайт-код',
+        'grade' => 'Оценка',
+        'submission' => 'Сдача',
+        'review_profile' => 'Профиль AI-проверки',
     ],
 
     // Status messages

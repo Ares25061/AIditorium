@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
@@ -30,5 +31,10 @@ class Course extends Model
     public function disciplines()
     {
         return $this->hasMany(Discipline::class);
+    }
+
+    public function aiReviewRuns(): HasMany
+    {
+        return $this->hasMany(AiReviewRun::class);
     }
 }

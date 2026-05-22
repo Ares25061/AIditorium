@@ -12,6 +12,9 @@ return [
         'task' => 'Task',
         'comment' => 'Comment',
         'grade' => 'Grade',
+        'taskreviewprofile' => 'AI Review Profiles',
+        'aireview' => 'AI Review',
+        'peerreview' => 'Peer Review',
     ],
     'user' => [
         'index' => ['summary' => 'List users', 'description' => 'Get a paginated list of all users (for admin).'],
@@ -71,14 +74,18 @@ return [
     ],
     'task' => [
         'index' => ['summary' => 'List tasks', 'description' => 'Get a paginated list of all tasks (for admin).'],
-        'store' => ['summary' => 'Create task', 'description' => 'Create a new task in a course with optional attachment.'],
+        'store' => ['summary' => 'Create task', 'description' => 'Create a new task in a course with optional attachments.'],
         'show' => ['summary' => 'Get task details', 'description' => 'Display specific task information.'],
-        'update' => ['summary' => 'Update task', 'description' => 'Update task information and optional attachment.'],
+        'update' => ['summary' => 'Update task', 'description' => 'Update task information and attached materials.'],
         'destroy' => ['summary' => 'Delete task', 'description' => 'Remove a task from the system.'],
         'viewTasks' => ['summary' => 'Course tasks', 'description' => 'Receiving course assignments with the option to choose a specific discipline'],
+        'showByNumber' => ['summary' => 'Get task by number', 'description' => 'Get a task by its number, course id or slug, and discipline id or slug.'],
+        'uploadAttachments' => ['summary' => 'Upload task materials', 'description' => 'Upload one or more materials for a task.'],
+        'reviewers' => ['summary' => 'Task reviewers', 'description' => 'Get selected reviewers and eligible teachers for a task.'],
+        'updateReviewers' => ['summary' => 'Update task reviewers', 'description' => 'Assign teachers who can review submissions for a task.'],
         'attachSubmission' => ['summary' => 'Submit work', 'description' => 'Attach a file as submission for a task (student).'],
         'detachSubmission' => ['summary' => 'Remove submission', 'description' => 'Remove your submission from a task (student).'],
-        'submissions' => ['summary' => 'All submissions', 'description' => 'Get all submissions for a task (teacher only).'],
+        'submissions' => ['summary' => 'Task submissions', 'description' => 'Get all submissions for a task (task author or assigned reviewer only).'],
     ],
     'comment' => [
         'index' => ['summary' => 'List comments', 'description' => 'Get paginated list of all comments (admin only).'],
@@ -102,6 +109,27 @@ return [
         'myGrades' => ['summary' => 'My grades', 'description' => 'Get your own grades in a course (student).'],
         'studentGrades' => ['summary' => 'Student grades', 'description' => 'Get specific student grades (teacher only).'],
         'statistics' => ['summary' => 'Grade statistics', 'description' => 'Get grade statistics for a course (teacher only).'],
-        'showByNumber' => ['summary' => 'Show task task number', 'description' => 'Show task by task number, id or slug course and id or slug discipline.'],
+    ],
+
+    'taskreviewprofile' => [
+        'show' => ['summary' => 'Task AI review profile', 'description' => 'Get the current AI review profile for a task.'],
+        'update' => ['summary' => 'Update AI review profile', 'description' => 'Create or update the teacher-only AI review profile for a task.'],
+    ],
+
+    'aireview' => [
+        'queue' => ['summary' => 'Queue AI review', 'description' => 'Queue an AI review run for a specific submission.'],
+        'index' => ['summary' => 'Task AI reviews', 'description' => 'Get all AI review runs for a task.'],
+        'show' => ['summary' => 'Get AI review', 'description' => 'Get detailed information for a single AI review run.'],
+        'applyGrade' => ['summary' => 'Apply AI grade', 'description' => 'Persist the recommended AI score as a grade after explicit teacher confirmation.'],
+    ],
+
+    'peerreview' => [
+        'myAssignments' => ['summary' => 'My peer review assignments', 'description' => 'Get works assigned to the current student for peer review.'],
+        'saveResult' => ['summary' => 'Save peer review result', 'description' => 'Save the student grade and comment for an assigned work.'],
+        'showSettings' => ['summary' => 'Peer review settings', 'description' => 'Get current peer review settings for a task.'],
+        'updateSettings' => ['summary' => 'Update peer review settings', 'description' => 'Update peer review mode, review count, score permission, and instructions.'],
+        'taskAssignments' => ['summary' => 'Task peer review assignments', 'description' => 'Get all peer review assignments for the selected task.'],
+        'replaceTaskAssignments' => ['summary' => 'Save peer review assignments', 'description' => 'Replace the full list of peer review assignments for the selected task.'],
+        'taskResults' => ['summary' => 'Task peer review results', 'description' => 'Get all peer review results for the selected task.'],
     ],
 ];

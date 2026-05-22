@@ -110,6 +110,12 @@ return [
             'deny' => "You don't have permission to delete this task in this course",
             'archived' => 'You cannot delete a task in an archived course.',
         ],
+        'review' => [
+            'deny' => "You don't have permission to review submissions for this task",
+        ],
+        'manage_reviewers' => [
+            'deny' => "Only the task author can manage reviewers for this task",
+        ],
     ],
     // user policy
     'user' => [

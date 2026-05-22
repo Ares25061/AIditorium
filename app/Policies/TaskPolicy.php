@@ -3,9 +3,11 @@
 namespace App\Policies;
 
 use App\Enums\CourseUsersRoleEnum;
+use App\Enums\GradePermissions;
 use App\Enums\StatusCourseEnum;
 use App\Enums\TaskPermissions;
 use App\Models\Course;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -98,9 +100,77 @@ class TaskPolicy
         return $userCourse && $userCourse->pivot->role === 'student';
     }
 
-    public function viewSubmissions(User $user, Course $course)
+    public function viewSubmissions(User $user, Task $task): Response
     {
-        $userCourse = $user->courses()->where('course_id', $course->id)->first();
-        return $userCourse && $userCourse->pivot->role === 'teacher';
+        if ($this->canReviewTask($user, $task)) {
+            return Response::allow();
+        }
+
+        return Response::deny(__('policies.task.review.deny'));
+    }
+
+    public function manageReviewers(User $user, Task $task): Response
+    {
+        if ($user->hasPermission(TaskPermissions::REVIEW_SUBMISSIONS) || (int) $task->user_id === (int) $user->id) {
+            return Response::allow();
+        }
+
+        return Response::deny(__('policies.task.manage_reviewers.deny'));
+    }
+
+    public function manageReviewProfile(User $user, Task $task): bool
+    {
+        if ($user->hasPermission(TaskPermissions::UPDATE)) {
+            return true;
+        }
+
+        return $this->canReviewTask($user, $task);
+    }
+
+    public function runAiReview(User $user, Task $task): bool
+    {
+        return $this->manageReviewProfile($user, $task);
+    }
+
+    public function viewAiReviews(User $user, Task $task): bool
+    {
+        return $this->manageReviewProfile($user, $task);
+    }
+
+    public function applyAiReviewGrade(User $user, Task $task): bool
+    {
+        if ($user->hasPermission(GradePermissions::UPDATE)) {
+            return true;
+        }
+
+        return $this->canReviewTask($user, $task);
+    }
+
+    private function canReviewTask(User $user, Task $task): bool
+    {
+        if ($user->hasPermission(TaskPermissions::REVIEW_SUBMISSIONS)) {
+            return true;
+        }
+
+        if ((int) $task->user_id === (int) $user->id) {
+            return $this->isCourseTeacher($user, (int) $task->course_id);
+        }
+
+        if (!$this->isCourseTeacher($user, (int) $task->course_id)) {
+            return false;
+        }
+
+        return $task->reviewers()
+            ->whereKey($user->id)
+            ->exists();
+    }
+
+    private function isCourseTeacher(User $user, int $courseId): bool
+    {
+        $userCourse = $user->courses()
+            ->where('course_id', $courseId)
+            ->first();
+
+        return (bool) ($userCourse && $userCourse->pivot->role === CourseUsersRoleEnum::TEACHER->value);
     }
 }
