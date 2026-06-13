@@ -123,6 +123,12 @@ class AiReviewFlowTest extends TestCase
         $this->assertSame('passed', $review->result_json['criteria_results'][0]['status']);
         $this->assertSame('server', $review->result_json['criteria_results'][0]['source']);
         $this->assertSame('criterion_compile', $review->result_json['criteria_results'][0]['criterion_id']);
+        $this->assertSame('Алгоритмы', $review->criteria_snapshot_json['review_context']['course']['name']);
+        $this->assertSame('Python', $review->criteria_snapshot_json['review_context']['discipline']['name']);
+        $this->assertSame('Решить задачу', $review->criteria_snapshot_json['review_context']['task']['name']);
+        $this->assertSame('Напишите программу.', $review->criteria_snapshot_json['review_context']['task']['description']);
+        $this->assertNotEmpty($review->criteria_snapshot_json['review_context']['task']['deadline_at']);
+        $this->assertNotEmpty($review->criteria_snapshot_json['review_context']['submission']['submitted_at']);
 
         $listResponse = $this->actingAs($teacher, 'api')->getJson("/api/task/{$task->id}/ai-reviews");
         $listResponse->assertOk()

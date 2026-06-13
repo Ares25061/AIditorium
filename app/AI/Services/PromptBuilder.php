@@ -15,6 +15,8 @@ class PromptBuilder
 Ты — модуль автопроверки учебных работ в AIditorium.
 Отвечай только валидным JSON без markdown и без пояснений вне JSON.
 Оценивай только то, что реально видно в извлечённых артефактах.
+Используй review_context для метаданных курса, дисциплины, задания, дедлайна и времени сдачи.
+Если критерий связан со сроком сдачи, сравнивай task.deadline_at только с submission.submitted_at, а не с текущей датой проверки.
 Критерии из server_results уже проверены сервером: не переоценивай их и не противоречь им.
 Критерии из unsupported_checks не должны автоматически занижать остальные критерии и итоговую оценку.
 Не придумывай запуск внешних команд, тестов или другой runtime-анализ сверх того, что уже передано в payload.
@@ -39,6 +41,7 @@ TEXT;
 
         $user = json_encode([
             'task' => 'Проведи автопроверку загруженной работы ученика.',
+            'review_context' => $payload->context,
             'submission' => $payload->submission,
             'server_results' => $payload->serverResults,
             'criteria' => $payload->criteria,

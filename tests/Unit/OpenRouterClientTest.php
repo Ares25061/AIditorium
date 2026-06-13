@@ -296,6 +296,25 @@ JSON,
                 'file_name' => 'solution.txt',
                 'file_extension' => 'txt',
             ],
+            context: [
+                'task' => [
+                    'id' => 1,
+                    'name' => 'Тестовое задание',
+                    'description' => 'Описание задания.',
+                    'deadline_at' => '2026-06-20T21:00:00.000000Z',
+                ],
+                'course' => [
+                    'id' => 10,
+                    'name' => 'Тестовый курс',
+                ],
+                'discipline' => [
+                    'id' => 20,
+                    'name' => 'Тестовая дисциплина',
+                ],
+                'submission' => [
+                    'submitted_at' => '2026-06-13T21:00:00.000000Z',
+                ],
+            ],
             artifacts: [
                 'kind' => 'text',
                 'text_excerpt' => 'Ответ студента.',
