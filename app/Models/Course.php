@@ -33,6 +33,16 @@ class Course extends Model
         return $this->hasMany(Discipline::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(File::class);
+    }
+
     public function aiReviewRuns(): HasMany
     {
         return $this->hasMany(AiReviewRun::class);

@@ -9,6 +9,7 @@ use App\Http\Controllers\UserAvatarController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\AiReviewController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TaskReviewProfileController;
 use App\Http\Controllers\PeerReviewController;
 
@@ -21,6 +22,8 @@ Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware(['auth:api'])->group(function () {
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+
     Route::post('/logout', [UserController::class, 'logout']);
     Route::post('/user/avatar/upload', [UserAvatarController::class, 'upload']);
     Route::post('/user/avatar/destroy', [UserAvatarController::class, 'destroy']);

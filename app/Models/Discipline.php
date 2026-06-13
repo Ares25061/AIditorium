@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Discipline extends Model
@@ -33,6 +34,11 @@ class Discipline extends Model
     public function tasks()
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 
     public function aiReviewRuns(): HasMany
