@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -36,6 +37,7 @@ class AdminController extends Controller
             ->with([
                 'users:id,name,email',
                 'disciplines:id,course_id,name,discipline_number,slug',
+                'backgroundLogo:id,path,original_name,mime_type,extension,size_bytes',
             ])
             ->withCount(['users', 'disciplines', 'tasks', 'files'])
             ->orderByDesc('created_at')
@@ -80,6 +82,34 @@ class AdminController extends Controller
             'disciplines' => $disciplines,
             'tasks' => $tasks,
             'files' => $files,
+        ]);
+    }
+
+    public function resetCourseBackground(Request $request, Course $course): JsonResponse
+    {
+        if (!$this->isAdmin($request->user())) {
+            return response()->json([
+                'error' => 'Доступ разрешен только администратору.',
+            ], 403);
+        }
+
+        if ($course->background_logo_id) {
+            $file = File::find($course->background_logo_id);
+
+            if ($file) {
+                if (Storage::disk('public')->exists($file->path)) {
+                    Storage::disk('public')->delete($file->path);
+                }
+
+                $file->delete();
+            }
+        }
+
+        $course->forceFill(['background_logo_id' => null])->save();
+
+        return response()->json([
+            'message' => 'Баннер курса сброшен.',
+            'course' => $course->fresh(['backgroundLogo']),
         ]);
     }
 

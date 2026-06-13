@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -95,6 +96,44 @@ class AdminDashboardTest extends TestCase
             ->getJson('/api/admin/dashboard')
             ->assertForbidden()
             ->assertJsonPath('error', 'Доступ разрешен только администратору.');
+    }
+
+    public function test_admin_can_reset_course_background(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::whereHas('role', fn ($query) => $query->where('name', Roles::ADMIN->value))->firstOrFail();
+        $course = Course::create([
+            'creator_id' => $admin->id,
+            'name' => 'Курс с баннером',
+            'invite_code' => 'IC-'.Str::upper(Str::random(8)),
+            'invite_code_teacher' => 'TC-'.Str::upper(Str::random(8)),
+            'description' => 'Курс для проверки сброса баннера',
+            'status' => 'active',
+            'is_closed' => false,
+            'slug' => 'banner-course-'.Str::lower(Str::random(6)),
+        ]);
+
+        Storage::disk('public')->put('backs/banner.jpg', 'fake image');
+        $file = File::create([
+            'path' => 'backs/banner.jpg',
+            'original_name' => 'banner.jpg',
+            'mime_type' => 'image/jpeg',
+            'extension' => 'jpg',
+            'size_bytes' => 10,
+            'user_id' => $admin->id,
+            'type' => 'background',
+            'is_public' => true,
+        ]);
+        $course->update(['background_logo_id' => $file->id]);
+
+        $this->actingAs($admin, 'api')
+            ->deleteJson("/api/admin/course/{$course->id}/background")
+            ->assertOk()
+            ->assertJsonPath('course.background_logo_id', null);
+
+        $this->assertDatabaseMissing('files', ['id' => $file->id]);
+        Storage::disk('public')->assertMissing('backs/banner.jpg');
     }
 
     private function createRegularUser(): User

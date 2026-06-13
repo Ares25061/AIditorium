@@ -9,7 +9,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class OpenRouterClientTest extends TestCase
+class AiModelTest extends TestCase
 {
     public function test_client_retries_empty_completion_and_accepts_markdown_json(): void
     {

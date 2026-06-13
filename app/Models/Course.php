@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
@@ -41,6 +42,11 @@ class Course extends Model
     public function files(): HasMany
     {
         return $this->hasMany(File::class);
+    }
+
+    public function backgroundLogo(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'background_logo_id');
     }
 
     public function aiReviewRuns(): HasMany

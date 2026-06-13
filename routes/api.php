@@ -23,6 +23,7 @@ Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+    Route::delete('/admin/course/{course}/background', [AdminController::class, 'resetCourseBackground']);
 
     Route::post('/logout', [UserController::class, 'logout']);
     Route::post('/user/avatar/upload', [UserAvatarController::class, 'upload']);
