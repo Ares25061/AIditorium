@@ -78,6 +78,7 @@ return [
         'grade' => 'Оценка',
         'submission' => 'Сдача',
         'review_profile' => 'Профиль AI-проверки',
+        'comment' => 'Комментарий',
     ],
 
     // Status messages

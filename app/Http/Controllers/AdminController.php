@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CourseUsersRoleEnum;
 use App\Enums\Roles;
 use App\Models\Course;
 use App\Models\Discipline;
@@ -12,6 +13,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -110,6 +112,88 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'Баннер курса сброшен.',
             'course' => $course->fresh(['backgroundLogo']),
+        ]);
+    }
+
+    public function addCourseUser(Request $request, Course $course): JsonResponse
+    {
+        if (!$this->isAdmin($request->user())) {
+            return response()->json([
+                'error' => 'Доступ разрешен только администратору.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'role' => [
+                'required',
+                'string',
+                Rule::in(array_map(
+                    static fn (CourseUsersRoleEnum $role): string => $role->value,
+                    CourseUsersRoleEnum::cases()
+                )),
+            ],
+        ]);
+
+        $targetUser = User::findOrFail($validated['user_id']);
+
+        if (
+            (int) $targetUser->id === (int) $course->creator_id
+            && $validated['role'] !== CourseUsersRoleEnum::TEACHER->value
+        ) {
+            return response()->json([
+                'error' => 'Создателя курса можно добавить только в роли преподавателя.',
+            ], 409);
+        }
+
+        $isAlreadyMember = $course
+            ->users()
+            ->where('users.id', $targetUser->id)
+            ->exists();
+
+        $course->users()->syncWithoutDetaching([
+            $targetUser->id => ['role' => $validated['role']],
+        ]);
+
+        return response()->json([
+            'message' => $isAlreadyMember
+                ? 'Роль участника курса обновлена.'
+                : 'Пользователь добавлен в курс.',
+            'course' => $course
+                ->fresh(['users:id,name,email'])
+                ->loadCount(['users', 'disciplines', 'tasks', 'files']),
+        ]);
+    }
+
+    public function removeCourseUser(Request $request, Course $course, User $user): JsonResponse
+    {
+        if (!$this->isAdmin($request->user())) {
+            return response()->json([
+                'error' => 'Доступ разрешен только администратору.',
+            ], 403);
+        }
+
+        if ((int) $user->id === (int) $course->creator_id) {
+            return response()->json([
+                'error' => 'Нельзя исключить создателя курса.',
+            ], 409);
+        }
+
+        if ($course->users()->where('users.id', $user->id)->doesntExist()) {
+            return response()->json([
+                'error' => 'Пользователь не состоит в этом курсе.',
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+            ], 409);
+        }
+
+        $course->users()->detach($user->id);
+
+        return response()->json([
+            'message' => 'Пользователь исключен из курса.',
+            'course' => $course
+                ->fresh(['users:id,name,email'])
+                ->loadCount(['users', 'disciplines', 'tasks', 'files']),
         ]);
     }
 

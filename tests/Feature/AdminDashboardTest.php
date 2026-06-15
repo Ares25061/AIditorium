@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CourseUsersRoleEnum;
 use App\Enums\Roles;
 use App\Models\Course;
 use App\Models\Discipline;
@@ -134,6 +135,92 @@ class AdminDashboardTest extends TestCase
 
         $this->assertDatabaseMissing('files', ['id' => $file->id]);
         Storage::disk('public')->assertMissing('backs/banner.jpg');
+    }
+
+    public function test_admin_can_add_user_to_course_with_selected_role(): void
+    {
+        $admin = User::whereHas('role', fn ($query) => $query->where('name', Roles::ADMIN->value))->firstOrFail();
+        $targetUser = $this->createRegularUser();
+        $course = $this->createCourseFor($admin);
+
+        $this->actingAs($admin, 'api')
+            ->postJson("/api/admin/course/{$course->id}/users", [
+                'user_id' => $targetUser->id,
+                'role' => CourseUsersRoleEnum::TEACHER->value,
+            ])
+            ->assertOk()
+            ->assertJsonPath('course.users_count', 1);
+
+        $this->assertDatabaseHas('course_user', [
+            'course_id' => $course->id,
+            'user_id' => $targetUser->id,
+            'role' => CourseUsersRoleEnum::TEACHER->value,
+        ]);
+    }
+
+    public function test_admin_can_remove_non_creator_from_course(): void
+    {
+        $admin = User::whereHas('role', fn ($query) => $query->where('name', Roles::ADMIN->value))->firstOrFail();
+        $student = $this->createRegularUser();
+        $course = $this->createCourseFor($admin);
+        $course->users()->attach($student->id, ['role' => CourseUsersRoleEnum::STUDENT->value]);
+
+        $this->actingAs($admin, 'api')
+            ->deleteJson("/api/admin/course/{$course->id}/users/{$student->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Пользователь исключен из курса.');
+
+        $this->assertDatabaseMissing('course_user', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+        ]);
+    }
+
+    public function test_admin_cannot_remove_course_creator(): void
+    {
+        $admin = User::whereHas('role', fn ($query) => $query->where('name', Roles::ADMIN->value))->firstOrFail();
+        $course = $this->createCourseFor($admin);
+        $course->users()->attach($admin->id, ['role' => CourseUsersRoleEnum::TEACHER->value]);
+
+        $this->actingAs($admin, 'api')
+            ->deleteJson("/api/admin/course/{$course->id}/users/{$admin->id}")
+            ->assertStatus(409)
+            ->assertJsonPath('error', 'Нельзя исключить создателя курса.');
+
+        $this->assertDatabaseHas('course_user', [
+            'course_id' => $course->id,
+            'user_id' => $admin->id,
+        ]);
+    }
+
+    public function test_regular_user_cannot_manage_course_users_as_admin(): void
+    {
+        $admin = User::whereHas('role', fn ($query) => $query->where('name', Roles::ADMIN->value))->firstOrFail();
+        $regularUser = $this->createRegularUser();
+        $targetUser = $this->createRegularUser();
+        $course = $this->createCourseFor($admin);
+
+        $this->actingAs($regularUser, 'api')
+            ->postJson("/api/admin/course/{$course->id}/users", [
+                'user_id' => $targetUser->id,
+                'role' => CourseUsersRoleEnum::STUDENT->value,
+            ])
+            ->assertForbidden()
+            ->assertJsonPath('error', 'Доступ разрешен только администратору.');
+    }
+
+    private function createCourseFor(User $creator): Course
+    {
+        return Course::create([
+            'creator_id' => $creator->id,
+            'name' => 'Админ курс '.Str::lower(Str::random(6)),
+            'invite_code' => 'IC-'.Str::upper(Str::random(8)),
+            'invite_code_teacher' => 'TC-'.Str::upper(Str::random(8)),
+            'description' => 'Курс для проверки админского управления',
+            'status' => 'active',
+            'is_closed' => false,
+            'slug' => 'admin-manage-course-'.Str::lower(Str::random(6)),
+        ]);
     }
 
     private function createRegularUser(): User

@@ -15,6 +15,7 @@ return [
         'taskreviewprofile' => 'AI Review Profiles',
         'aireview' => 'AI Review',
         'peerreview' => 'Peer Review',
+        'admin' => 'Administration',
     ],
     'user' => [
         'index' => ['summary' => 'List users', 'description' => 'Get a paginated list of all users (for admin).'],
@@ -131,5 +132,12 @@ return [
         'taskAssignments' => ['summary' => 'Task peer review assignments', 'description' => 'Get all peer review assignments for the selected task.'],
         'replaceTaskAssignments' => ['summary' => 'Save peer review assignments', 'description' => 'Replace the full list of peer review assignments for the selected task.'],
         'taskResults' => ['summary' => 'Task peer review results', 'description' => 'Get all peer review results for the selected task.'],
+    ],
+
+    'admin' => [
+        'dashboard' => ['summary' => 'Admin dashboard data', 'description' => 'Get user, course, discipline, task, and file summary data for a global administrator.'],
+        'addCourseUser' => ['summary' => 'Add user to course', 'description' => 'Add a user directly to the selected course with a student or teacher role.'],
+        'removeCourseUser' => ['summary' => 'Remove user from course', 'description' => 'Remove a course member as an administrator. The course creator cannot be removed.'],
+        'resetCourseBackground' => ['summary' => 'Reset course banner', 'description' => 'Delete the current course banner and its related storage file.'],
     ],
 ];

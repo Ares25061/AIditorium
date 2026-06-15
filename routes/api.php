@@ -23,6 +23,8 @@ Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+    Route::post('/admin/course/{course}/users', [AdminController::class, 'addCourseUser']);
+    Route::delete('/admin/course/{course}/users/{user}', [AdminController::class, 'removeCourseUser']);
     Route::delete('/admin/course/{course}/background', [AdminController::class, 'resetCourseBackground']);
 
     Route::post('/logout', [UserController::class, 'logout']);

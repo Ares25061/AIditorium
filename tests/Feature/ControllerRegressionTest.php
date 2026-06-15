@@ -61,6 +61,72 @@ class ControllerRegressionTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_comment_author_can_delete_public_and_private_comments(): void
+    {
+        ['student' => $student, 'task' => $task, 'course' => $course] = $this->createCourseContext();
+
+        $submission = File::create([
+            'path' => 'submissions/comment-delete.txt',
+            'original_name' => 'comment-delete.txt',
+            'mime_type' => 'text/plain',
+            'extension' => 'txt',
+            'size_bytes' => 120,
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'type' => 'submission',
+            'is_public' => false,
+        ]);
+
+        $publicComment = Comment::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'body' => 'Публичный комментарий',
+        ]);
+
+        $privateComment = Comment::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'file_id' => $submission->id,
+            'body' => 'Личный комментарий',
+        ]);
+
+        $this->actingAs($student, 'api')
+            ->deleteJson("/api/comment/{$publicComment->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Комментарий успешно удален!');
+
+        $this->actingAs($student, 'api')
+            ->deleteJson("/api/comment/{$privateComment->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Комментарий успешно удален!');
+
+        $this->assertDatabaseMissing('comments', ['id' => $publicComment->id]);
+        $this->assertDatabaseMissing('comments', ['id' => $privateComment->id]);
+    }
+
+    public function test_user_cannot_delete_another_users_comment(): void
+    {
+        ['student' => $student, 'task' => $task, 'course' => $course] = $this->createCourseContext();
+        $otherStudent = $this->createUser();
+        $otherStudent->courses()->attach($course->id, ['role' => 'student']);
+
+        $comment = Comment::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'task_id' => $task->id,
+            'body' => 'Чужой комментарий',
+        ]);
+
+        $this->actingAs($otherStudent, 'api')
+            ->deleteJson("/api/comment/{$comment->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('comments', ['id' => $comment->id]);
+    }
+
     public function test_task_review_profile_defaults_follow_supported_extensions_config(): void
     {
         ['teacher' => $teacher, 'task' => $task] = $this->createCourseContext();

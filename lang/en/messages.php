@@ -78,6 +78,7 @@ return [
         'grade' => 'Grade',
         'submission' => 'Submission',
         'review_profile' => 'AI review profile',
+        'comment' => 'Comment',
 
     ],
 
